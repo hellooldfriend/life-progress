@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <title>Life Progress — планирование от дня до года</title>
+  <meta name="description" content="Личное планирование жизненными спринтами: день, неделя, месяц, квартал, год. Задачи и итоги. Локально, без бэкенда." />
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%238b5cf6'/><path d='M8 16.5l5 5 11-11' stroke='white' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar__in">
+    <button class="brand" id="btnBrand" title="Обзор">life&nbsp;progress</button>
+    <nav class="tabs" id="tabs" role="tablist" aria-label="Горизонт планирования"></nav>
+    <div class="tools">
+      <button class="btn" id="btnExport" title="Скачать все данные в JSON">Экспорт</button>
+      <button class="btn" id="btnImport" title="Загрузить данные из JSON">Импорт</button>
+      <input type="file" id="fileImport" accept="application/json,.json" hidden />
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="periodbar">
+    <button class="nav-btn" id="btnPrev" title="Предыдущий период (←)" aria-label="Предыдущий период"></button>
+    <button class="nav-btn" id="btnNext" title="Следующий период (→)" aria-label="Следующий период"></button>
+    <h1 class="period-title" id="periodTitle"></h1>
+    <select class="select" id="spanSelect" title="Сколько периодов показывать рядом"
+            aria-label="Сколько периодов показывать рядом"></select>
+    <button class="btn" id="btnNow" title="Вернуться к текущему периоду (t)">Сейчас</button>
+  </div>
+
+  <div class="filters" id="filters" hidden></div>
+
+  <main id="content"></main>
+
+  <p class="foot">
+    Данные хранятся только в этом браузере (localStorage). Делайте экспорт в JSON для резервной копии.<br />
+    «Входящие» на обзоре — для мыслей без времени: записать сейчас, период назначить потом.
+    Клик по логотипу — обзор.<br />
+    Метка задаётся прямо в тексте: «купить билеты #работа». Клик по метке — фильтр по ней.<br />
+    Клик по тексту задачи — правка. ★ — важное, → — перенести в следующий период,
+    ⊘ — отменить (задача остаётся видна, но уходит из прогресса), ↑ ↓ — порядок.<br />
+    ⊞ — разбить цель на шаги: шаг живёт в своём периоде, а связь видна с обеих сторон.<br />
+    Клавиши: ← → — соседний период, t — вернуться к текущему, i — записать во входящие.
+  </p>
+</div>
+
+<script src="js/store.js"></script>
+<script src="js/insights.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

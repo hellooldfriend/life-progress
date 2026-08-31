@@ -1,0 +1,357 @@
+/* ============================================================
+   Life Progress — дизайн-система.
+   Тёмный минимализм: почти чёрный фон, индиго-акцент, тонкие границы.
+   Токены и их имена общие с проектом sprint-progress.
+   ============================================================ */
+
+/* ─────────────── 1. Токены ─────────────── */
+:root {
+  /* Поверхности */
+  --bg:            #0a0a0a;
+  --surface:       #101012;
+  --surface-2:     #141417;
+  --surface-3:     #1a1a1f;
+  --border:        rgba(255, 255, 255, .075);
+  --border-strong: rgba(255, 255, 255, .14);
+
+  /* Текст */
+  --text:  #ffffff;
+  --muted: #a1a1aa;
+  --faint: #6b6b76;
+
+  /* Акцент */
+  --accent:      #8b5cf6;
+  --accent-soft: rgba(139, 92, 246, .14);
+  --accent-dim:  rgba(139, 92, 246, .38);
+
+  /* Форма */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+
+  --ease: cubic-bezier(.4, 0, .2, 1);
+  --t:    .18s var(--ease);
+
+  --font: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --gap:  14px;
+  --page: 1080px;
+}
+
+/* ─────────────── 2. База ─────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  padding-bottom: 64px;
+}
+
+h1, h2 { margin: 0; font-weight: 600; letter-spacing: -.02em; }
+p { margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: none; padding: 0; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+::selection { background: var(--accent); color: #fff; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #26262c; border-radius: 99px; border: 3px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: #35353d; }
+
+.wrap { max-width: var(--page); margin: 0 auto; padding: 0 16px; }
+
+/* ─────────────── 3. Шапка ─────────────── */
+.topbar {
+  position: sticky; top: 0; z-index: 20;
+  background: rgba(10, 10, 10, .88);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+}
+.topbar__in {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  max-width: var(--page); margin: 0 auto; padding: 12px 16px;
+}
+.brand {
+  display: flex; align-items: center; gap: 7px;
+  padding: 4px 0; font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--faint); white-space: nowrap;
+  transition: color var(--t);
+}
+.brand:hover { color: var(--text); }
+.brand--active { color: var(--text); }
+/* Счётчик входящих: единственное, что видно с любой вкладки */
+.brand__badge {
+  padding: 0 6px; font-size: 11px; letter-spacing: 0;
+  color: #fff; background: var(--accent); border-radius: 999px;
+}
+
+.tabs { display: flex; gap: 4px; flex: 1 1 auto; overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  padding: 6px 12px; border-radius: 999px; white-space: nowrap;
+  color: var(--muted); border: 1px solid transparent;
+  transition: color var(--t), background var(--t), border-color var(--t);
+}
+.tab:hover { color: var(--text); background: var(--surface-2); }
+.tab[aria-selected="true"] {
+  color: #fff; background: var(--accent); border-color: var(--accent);
+}
+
+.tools { display: flex; gap: 6px; margin-left: auto; }
+.btn {
+  padding: 6px 11px; font-size: 13px; color: var(--muted);
+  border: 1px solid var(--border-strong); border-radius: var(--r-sm);
+  transition: color var(--t), border-color var(--t), background var(--t);
+}
+.btn:hover { color: var(--text); background: var(--surface-2); border-color: var(--accent-dim); }
+
+/* ─────────────── 4. Полоса периода ─────────────── */
+.periodbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 22px 0 18px; }
+.nav-btn {
+  width: 32px; height: 32px; flex: none;
+  display: grid; place-items: center;
+  color: var(--muted); border: 1px solid var(--border-strong); border-radius: var(--r-sm);
+  transition: color var(--t), border-color var(--t), background var(--t);
+}
+.nav-btn:hover { color: var(--text); background: var(--surface-2); border-color: var(--accent-dim); }
+
+.period-title { flex: 1 1 200px; margin: 0 4px; font-size: 22px; }
+.period-title small {
+  display: block; margin-top: 1px;
+  font-size: 13px; font-weight: 400; letter-spacing: 0; color: var(--muted);
+}
+.select {
+  padding: 6px 8px; font-size: 13px; color: var(--muted);
+  background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--r-sm);
+}
+
+/* ─────────────── 5. Сетка и карточки ─────────────── */
+.grid { display: grid; gap: var(--gap); }
+.grid--2 { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.grid--3 { grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); }
+.grid--4 { grid-template-columns: repeat(auto-fill, minmax(228px, 1fr)); }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 14px 16px 12px;
+}
+.card--focus {
+  background: var(--surface-2); border-color: var(--border-strong);
+  padding: 18px 20px 16px;
+}
+.card--today { border-color: var(--accent-dim); }
+.card--weekend .card__title { color: var(--muted); }
+
+.card__head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+.card__title { font-size: 16px; }
+.card--focus .card__title { font-size: 18px; }
+.card__sub { margin-top: 2px; font-size: 12px; color: var(--faint); }
+
+.link {
+  padding: 0; font: inherit; text-align: left; color: inherit;
+  transition: color var(--t);
+}
+.link:hover { color: var(--accent); }
+
+.section-label {
+  margin: 26px 0 10px;
+  font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--faint);
+}
+
+/* ─────────────── 5.1 Фильтры по меткам ─────────────── */
+.filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+.chip {
+  padding: 4px 10px; font-size: 12px; color: var(--muted);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 999px;
+  transition: color var(--t), border-color var(--t), background var(--t);
+}
+.chip:hover { color: var(--text); border-color: var(--border-strong); }
+.chip[aria-pressed="true"] {
+  color: var(--accent); background: var(--accent-soft); border-color: var(--accent-dim);
+}
+
+/* ─────────────── 5.2 Обзор ─────────────── */
+.grid--gap-top { margin-top: var(--gap); }
+
+.badge {
+  flex: none; margin-left: auto; padding: 1px 8px;
+  font-size: 12px; font-variant-numeric: tabular-nums;
+  color: var(--accent); background: var(--accent-soft);
+  border: 1px solid var(--accent-dim); border-radius: 999px;
+}
+.retros { list-style: none; margin: 0; padding: 0; }
+.retros .card__sub { display: inline; }
+.tag--source { cursor: pointer; transition: color var(--t), border-color var(--t); }
+.tag--source:hover { color: var(--text); border-color: var(--border-strong); }
+
+/* ─────────────── 6. Прогресс ─────────────── */
+.progress { display: flex; align-items: center; gap: 8px; flex: none; margin-left: auto; padding-top: 3px; }
+.progress__bar { width: 52px; height: 3px; background: var(--surface-3); border-radius: 2px; overflow: hidden; }
+.progress__bar i { display: block; width: 0; height: 100%; background: var(--accent); transition: width .25s var(--ease); }
+.progress__count { font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
+
+/* ─────────────── 7. Задачи ─────────────── */
+.tasks { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
+
+/* min-width: 0 нужен дважды: здесь — чтобы строка не распирала грид-колонку списка,
+   и ниже на тексте — чтобы он сжимался под кнопки. Без этого длинное название цели
+   в теге выталкивает строку за край карточки */
+.task { display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 5px 4px 5px 0; border-radius: 6px; }
+.task:hover { background: var(--surface-2); }
+.task--important { position: relative; padding-left: 11px; }
+.task--important::before {
+  content: ""; position: absolute; left: 2px; top: 7px; bottom: 7px;
+  width: 2px; background: var(--accent); border-radius: 1px;
+}
+
+.check {
+  flex: none; width: 19px; height: 19px; margin-top: 2px;
+  display: grid; place-items: center;
+  border: 1px solid var(--border-strong); border-radius: 5px;
+  transition: background var(--t), border-color var(--t);
+}
+.check:hover { border-color: var(--accent); }
+.check__tick {
+  width: 13px; height: 13px; fill: none; stroke: #fff; stroke-width: 2.2;
+  stroke-linecap: round; stroke-linejoin: round;
+  stroke-dasharray: 18; stroke-dashoffset: 18;
+  transition: stroke-dashoffset .2s var(--ease);
+}
+.task--done .check { background: var(--accent); border-color: var(--accent); }
+.task--done .check__tick { stroke-dashoffset: 0; }
+
+/* min-width: 0 обязателен: без него флекс-элемент не сжимается уже своего содержимого,
+   и строка с кнопками вылезает за край узкой карточки */
+.task__text { flex: 1 1 auto; min-width: 0; padding-top: 1px; cursor: text; word-break: break-word; }
+.task__actions { display: flex; align-items: flex-start; gap: 2px; margin-left: auto; }
+.task--done .task__text, .task--cancelled .task__text { color: var(--faint); }
+.task--done .task__text { text-decoration: line-through; }
+/* Отменённая зачёркнута иначе, чем сделанная: это не результат, а снятый пункт */
+.task--cancelled .task__text { text-decoration: line-through; text-decoration-style: dashed; }
+.task--cancelled .check { opacity: .4; }
+
+/* Теги: метка, перенос, отмена */
+/* Название цели в теге — произвольной длины, а тег не переносится:
+   без ограничения строка вылезает за край узкой карточки */
+.tag {
+  display: inline-block; margin-left: 6px; padding: 1px 6px; vertical-align: bottom;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+  font-size: 11px; line-height: 1.5; white-space: nowrap;
+  color: var(--muted); background: var(--surface-3);
+  border: 1px solid var(--border); border-radius: 5px;
+}
+.tag--category { cursor: pointer; transition: color var(--t), border-color var(--t); }
+.tag--category:hover { color: var(--accent); border-color: var(--accent-dim); }
+.tag--carry { color: var(--accent); background: var(--accent-soft); border-color: var(--accent-dim); }
+.tag--longrun { color: #fff; background: var(--accent); border-color: var(--accent); }
+.tag--cancelled { color: var(--faint); }
+.tag--parent, .tag--steps, .tag--source { cursor: pointer; transition: color var(--t), border-color var(--t); }
+.tag--parent { color: var(--muted); border-color: var(--border-strong); }
+.tag--parent:hover, .tag--steps:hover { color: var(--accent); border-color: var(--accent-dim); }
+.tag--steps { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* Шаг цели: живёт в своём периоде, под целью показывается со сдвигом */
+.task--step { margin-left: 26px; font-size: 14px; }
+.task--step .task__text { color: var(--muted); }
+.task--step.task--done .task__text { color: var(--faint); }
+.task--step .check { width: 17px; height: 17px; }
+
+/* Панель разбивки цели на шаги */
+.steps-panel {
+  margin: 4px 0 8px 26px; padding: 10px 12px;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-sm);
+  display: grid; gap: 8px;
+}
+.steps-panel__row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.steps-panel__row .add__input { min-width: 140px; }
+.steps-panel__link { font-size: 12px; color: var(--faint); }
+.steps-panel__link .select { flex: 1 1 160px; max-width: 100%; }
+
+.task__icon {
+  flex: none; padding: 3px; font-size: 13px; line-height: 1;
+  color: var(--faint); opacity: 0;
+  transition: opacity var(--t), color var(--t);
+}
+.task:hover .task__icon, .task:focus-within .task__icon { opacity: 1; }
+.task__icon { min-width: 18px; text-align: center; }
+
+/* Разбор входящего: словами, а не значками — «сегодня» понятнее любой стрелки */
+.task__file {
+  flex: none; padding: 2px 7px; font-size: 11px; line-height: 1.5;
+  color: var(--muted); background: var(--surface-3);
+  border: 1px solid var(--border); border-radius: 5px;
+  transition: color var(--t), border-color var(--t);
+}
+.task__file:hover { color: var(--accent); border-color: var(--accent-dim); }
+.task__icon:hover { color: var(--text); }
+.task--important .task__icon--star { opacity: 1; color: var(--accent); }
+
+.task__edit {
+  flex: 1 1 auto; padding: 2px 7px;
+  background: var(--bg); border: 1px solid var(--border-strong); border-radius: 6px;
+}
+.empty { padding: 4px 0; font-size: 13px; color: #3d3d44; }
+
+/* ─────────────── 8. Добавление задачи ─────────────── */
+.add { display: flex; gap: 6px; margin-top: 8px; }
+.add__input {
+  flex: 1 1 auto; padding: 5px 2px;
+  background: transparent; border: 0; border-bottom: 1px solid var(--border);
+  transition: border-color var(--t);
+}
+.add__input::placeholder { color: #3d3d44; }
+.add__input:focus { outline: none; border-bottom-color: var(--accent); }
+.add__btn { padding: 0 6px; font-size: 17px; line-height: 1; color: var(--faint); transition: color var(--t); }
+.add__btn:hover { color: var(--accent); }
+
+/* ─────────────── 9. Итоги ─────────────── */
+.summary { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+.summary__label {
+  display: block; margin-bottom: 8px;
+  font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--faint);
+}
+.summary__input {
+  width: 100%; min-height: 96px; padding: 10px 12px; resize: vertical; overflow: hidden;
+  line-height: 1.55;
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-sm);
+  transition: border-color var(--t);
+}
+.summary__input::placeholder { color: #3d3d44; }
+.summary__input:focus { outline: none; border-color: var(--accent-dim); }
+
+.excerpt {
+  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
+  font-size: 13px; color: var(--muted); white-space: pre-wrap;
+}
+
+/* ─────────────── 10. Мини-строки (месяцы в годовом виде) ─────────────── */
+.mini { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 6px 0; }
+.mini + .mini { border-top: 1px solid var(--border); }
+.mini__count { font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
+
+/* ─────────────── 11. Подвал ─────────────── */
+.foot { margin-top: 40px; font-size: 12px; line-height: 1.8; color: var(--faint); }
+
+/* ─────────────── 12. Узкий экран ─────────────── */
+@media (max-width: 600px) {
+  .topbar__in { gap: 10px; padding: 10px 14px; }
+  /* Логотип не прячем: на телефоне это единственный вход в обзор */
+  .brand { font-size: 11px; letter-spacing: .1em; }
+  .period-title { font-size: 19px; }
+  .card { padding: 12px 13px 10px; }
+  .card--focus { padding: 15px 15px 13px; }
+  .task__icon { opacity: 1; }
+  /* Во входящих три кнопки разбора съедают всю ширину — уводим их под текст */
+  .task--inbox { flex-wrap: wrap; }
+  .task--inbox .task__actions { flex-basis: 100%; justify-content: flex-end; }
+}
