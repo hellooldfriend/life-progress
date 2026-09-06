@@ -78,3 +78,10 @@ test('неизвестный ключ возвращает сам себя, а �
   const { I18N } = loadApp();
   assert.equal(I18N.t('нет.такого'), 'нет.такого');
 });
+
+test('у каждого языка есть самоназвание для селекта', () => {
+  const { I18N } = loadApp();
+  assert.deepEqual(I18N.LANGS.map(I18N.name), ['English', 'Русский']);
+  assert.equal(I18N.name('xx'), 'xx', 'неизвестный код возвращается как есть');
+  assert.equal(I18N.DEFAULT, 'en');
+});

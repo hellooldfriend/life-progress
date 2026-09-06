@@ -17,8 +17,8 @@ const I18N = (() => {
     'app.title': 'Doozy — planning from a day to a year',
     'app.description': 'Personal and work planning across horizons: day, week, month, quarter, year. Tasks and reviews. Local, no backend.',
     'app.brand': 'doozy',
-    'lang.switch': 'RU',
-    'lang.switchTitle': 'Переключить на русский',
+    'lang.name': 'English',
+    'lang.title': 'Interface language',
 
     /* ── шапка и навигация ── */
     'tab.days': 'Days', 'tab.week': 'Week', 'tab.month': 'Month', 'tab.quarter': 'Quarter', 'tab.year': 'Year',
@@ -139,8 +139,8 @@ const I18N = (() => {
     'app.title': 'Doozy — планирование от дня до года',
     'app.description': 'Личное и рабочее планирование по горизонтам: день, неделя, месяц, квартал, год. Задачи и итоги. Локально, без бэкенда.',
     'app.brand': 'doozy',
-    'lang.switch': 'EN',
-    'lang.switchTitle': 'Switch to English',
+    'lang.name': 'Русский',
+    'lang.title': 'Язык интерфейса',
 
     'tab.days': 'Дни', 'tab.week': 'Неделя', 'tab.month': 'Месяц', 'tab.quarter': 'Квартал', 'tab.year': 'Год',
     'tabs.aria': 'Горизонт планирования',
@@ -270,5 +270,8 @@ const I18N = (() => {
     return true;
   }
 
-  return { t, setLang, get lang() { return lang; }, LANGS, DEFAULT };
+  /** Самоназвание языка — для списка выбора: «English», «Русский». */
+  const name = code => (DICT[code] ? DICT[code]['lang.name'] : code);
+
+  return { t, setLang, name, get lang() { return lang; }, LANGS, DEFAULT };
 })();

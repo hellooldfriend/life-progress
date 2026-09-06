@@ -528,7 +528,7 @@ const UI = (() => {
     return inboxHTML() +
       `<div class="section-label">${esc(t('section.now'))}</div>` +
       todayCard +
-      `<div class="grid grid--4${day ? ' grid--gap-top' : ''}">${horizons}</div>` +
+      `<div class="grid span-grid${day ? ' grid--gap-top' : ''}">${horizons}</div>` +
       attentionHTML();
   }
 
@@ -577,9 +577,11 @@ const UI = (() => {
       el.title = t(el.dataset.i18nTitle);
       if (el.hasAttribute('aria-label')) el.setAttribute('aria-label', t(el.dataset.i18nTitle));
     });
-    const langBtn = $('#btnLang');
-    langBtn.textContent = t('lang.switch');
-    langBtn.title = t('lang.switchTitle');
+    const langSelect = $('#langSelect');
+    langSelect.title = t('lang.title');
+    langSelect.innerHTML = I18N.LANGS.map(code =>
+      `<option value="${code}">${esc(I18N.name(code))}</option>`).join('');
+    langSelect.value = I18N.lang;
     const settingsBtn = $('#btnSettings');
     settingsBtn.title = t('settings.title');
     settingsBtn.setAttribute('aria-pressed', String(view.settingsOpen));

@@ -18,11 +18,7 @@
     if (box) UI.setVisible(box.dataset.visible, box.checked);
   });
 
-  // Переключатель языка показывает не текущий язык, а тот, на который переключит
-  $('#btnLang').addEventListener('click', () => {
-    const next = I18N.LANGS[(I18N.LANGS.indexOf(I18N.lang) + 1) % I18N.LANGS.length];
-    UI.setLang(next);
-  });
+  $('#langSelect').addEventListener('change', e => UI.setLang(e.target.value));
 
   /* ═════════════ Вкладки и навигация по времени ═════════════ */
 
