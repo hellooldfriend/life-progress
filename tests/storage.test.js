@@ -3,8 +3,9 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { loadApp } = require('./helpers/load');
 
-const KEY = 'life-progress:v1';
+const KEY = 'doozy:v1';
 const LEGACY_KEY = 'life-sprints/v1';
+const PREVIOUS_KEY = 'life-progress:v1';
 
 test('состояние переживает перезапуск приложения', () => {
   const first = loadApp();
@@ -46,7 +47,11 @@ test('данные первой версии подхватываются со �
 test('битые данные в localStorage не мешают приложению открыться', () => {
   const { Store } = loadApp({ [KEY]: '{это не json' });
   assert.deepEqual(Store.get().periods, {});
-  assert.deepEqual(Store.get().settings, { horizon: 'overview', spans: { day: 14, week: 1, month: 1, quarter: 1, year: 1 } });
+  assert.deepEqual(Store.get().settings, {
+    horizon: 'overview', lang: 'en',
+    spans: { day: 14, week: 1, month: 1, quarter: 1, year: 1 },
+    visible: { day: true, week: true, month: true, quarter: true, year: true },
+  });
 });
 
 test('normalize отбрасывает мусор и оставляет пригодное', () => {
@@ -95,8 +100,8 @@ test('parseImport принимает свой бэкап и отвергает �
   const parsed = Store.parseImport(backup);
   assert.deepEqual(parsed.periods['2026-08-29'].tasks.map(t => t.text), ['Купить матрас']);
 
-  assert.throws(() => Store.parseImport('{"tasks":[]}'), /не похож на бэкап/);
-  assert.throws(() => Store.parseImport('[]'), /не похож на бэкап/);
+  assert.throws(() => Store.parseImport('{"tasks":[]}'), /does not look like/);
+  assert.throws(() => Store.parseImport('[]'), /does not look like/);
   assert.throws(() => Store.parseImport('не json'), SyntaxError);
 });
 
@@ -111,4 +116,26 @@ test('replaceState заменяет данные целиком и сохран�
   assert.equal(Store.tasks('2026-08-29').length, 0);
   assert.deepEqual(Store.tasks('2026-09-01').map(t => t.text), ['Новое']);
   assert.match(storage.getItem(KEY), /Новое/);
+});
+
+test('данные с ключа предыдущего имени приложения подхватываются', () => {
+  const previous = JSON.stringify({
+    version: 3,
+    settings: { horizon: 'month', lang: 'ru', spans: { day: 7, week: 1, month: 3, quarter: 1, year: 1 } },
+    periods: { '2026-09': { tasks: [{ id: 'p1', text: 'Переехало с life-progress' }], summary: '' } },
+  });
+  const { Store, storage } = loadApp({ [PREVIOUS_KEY]: previous });
+
+  assert.deepEqual(Store.tasks('2026-09').map(t => t.text), ['Переехало с life-progress']);
+  assert.equal(Store.get().settings.lang, 'ru');
+  assert.equal(Store.get().settings.spans.month, 3);
+  assert.ok(storage.has(KEY), 'переписано на новый ключ');
+});
+
+test('при нескольких старых ключах побеждает самый свежий', () => {
+  const older = JSON.stringify({ periods: { '2026-01': { tasks: [{ text: 'из life-sprints' }] } } });
+  const newer = JSON.stringify({ periods: { '2026-02': { tasks: [{ text: 'из life-progress' }] } } });
+  const { Store } = loadApp({ [LEGACY_KEY]: older, [PREVIOUS_KEY]: newer });
+  assert.equal(Store.tasks('2026-02').length, 1, 'life-progress новее life-sprints');
+  assert.equal(Store.tasks('2026-01').length, 0);
 });

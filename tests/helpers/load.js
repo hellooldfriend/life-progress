@@ -15,7 +15,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const ROOT = path.join(__dirname, '..', '..');
-const SOURCES = ['js/store.js', 'js/insights.js'];
+const SOURCES = ['js/i18n.js', 'js/store.js', 'js/insights.js'];
 
 /** Минимальная замена localStorage: обычный объект в памяти. */
 function memoryStorage(seed) {
@@ -37,7 +37,7 @@ function buildFactorySource() {
   factorySource =
     '(function (localStorage, console, document, URL, Blob) {\n' +
     parts.join('\n') +
-    '\nreturn { Store, Insights };\n})';
+    '\nreturn { I18N, Store, Insights };\n})';
   return factorySource;
 }
 
@@ -45,7 +45,7 @@ function buildFactorySource() {
  * Поднимает приложение в чистом контексте.
  *
  * @param {object} [seed] содержимое localStorage до старта — для тестов миграции
- * @returns {{Store: object, Insights: object, storage: object}}
+ * @returns {{I18N: object, Store: object, Insights: object, storage: object}}
  */
 function loadApp(seed) {
   const storage = memoryStorage(seed);

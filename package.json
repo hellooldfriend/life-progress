@@ -1,8 +1,8 @@
 {
-  "name": "life-progress",
+  "name": "doozy",
   "version": "1.0.0",
   "private": true,
-  "description": "Личное планирование жизненными спринтами: день, неделя, месяц, квартал, год",
+  "description": "Планировщик по горизонтам: день, неделя, месяц, квартал, год. Личное и рабочее.",
   "scripts": {
     "test": "node --test",
     "test:watch": "node --test --watch",

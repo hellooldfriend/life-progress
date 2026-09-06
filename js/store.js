@@ -36,7 +36,7 @@
      done, doneAt,
      important,
      cancelled, cancelledAt,             // «не буду делать» — уходит из прогресса, но остаётся видна
-     carriedFrom: { key, label } | null, // откуда переехала
+     carriedFrom: { key } | null,        // откуда переехала; подпись — periodLabel(key)
      carryCount,                         // сколько раз переезжала подряд
      createdAt
    }
@@ -52,9 +52,9 @@
 const Store = (() => {
   'use strict';
 
-  const KEY = 'life-progress:v1';
-  /** Ключ первой версии приложения — читаем один раз, чтобы не потерять данные. */
-  const LEGACY_KEY = 'life-sprints/v1';
+  const KEY = 'doozy:v1';
+  /** Ключи прежних имён приложения — читаем, чтобы данные пережили переименование. */
+  const LEGACY_KEYS = ['life-progress:v1', 'life-sprints/v1'];
 
   const HORIZONS = ['day', 'week', 'month', 'quarter', 'year'];
 
@@ -71,6 +71,8 @@ const Store = (() => {
     year:    [1, 2, 3],
   };
   const DEFAULT_SPANS = { day: 14, week: 1, month: 1, quarter: 1, year: 1 };
+  /** Какие горизонты показывать. Кто планирует неделями, кварталы ему только мешают. */
+  const DEFAULT_VISIBLE = { day: true, week: true, month: true, quarter: true, year: true };
   /** Ключ входящих: «когда-нибудь, но записать надо сейчас». */
   const INBOX_KEY = 'inbox';
   /** Горизонты, у которых есть блок «Итоги»: ретроспектива нужна от недели и выше. */
@@ -114,31 +116,18 @@ const Store = (() => {
     return out;
   }
 
-  const MONTHS       = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
-  const MONTHS_NOM   = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
-  const MONTHS_GEN   = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
-  const WEEKDAYS     = ['понедельник','вторник','среда','четверг','пятница','суббота','воскресенье'];
-  const ROMAN        = ['I','II','III','IV'];
+  // Всё языковое — имена месяцев, порядок «день — месяц», склонения — живёт в I18N.
+  // Store лишь знает, какие числа туда передать.
+  const t = (...args) => I18N.t(...args);
 
-  /** Русское склонение при числе: 1 неделя, 2 недели, 5 недель. */
-  function plural(n, one, few, many) {
-    const mod10 = Math.abs(n) % 10;
-    const mod100 = Math.abs(n) % 100;
-    if (mod10 === 1 && mod100 !== 11) return one;
-    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
-    return many;
-  }
-
-  const SPAN_WORDS = {
-    day:     ['день', 'дня', 'дней'],
-    week:    ['неделя', 'недели', 'недель'],
-    month:   ['месяц', 'месяца', 'месяцев'],
-    quarter: ['квартал', 'квартала', 'кварталов'],
-    year:    ['год', 'года', 'лет'],
-  };
+  /** Склонение при числе по правилам текущего языка: 1 неделя, 2 недели, 5 недель. */
+  const plural = (n, one, few, many) => t('plural', n, one, few, many);
 
   /** Подпись для выбора ширины окна: «3 месяца», «14 дней». */
-  const spanLabel = (horizon, n) => `${n} ${plural(n, ...(SPAN_WORDS[horizon] || SPAN_WORDS.day))}`;
+  function spanLabel(horizon, n) {
+    const words = t('span.words')[horizon] || t('span.words').day;
+    return `${n} ${plural(n, ...words)}`;
+  }
 
   /**
    * Заголовок для нескольких периодов сразу. Повторы схлопываются:
@@ -158,11 +147,11 @@ const Store = (() => {
   }
 
   /** Месяц в именительном падеже: «Август». */
-  const monthName = iso => MONTHS_NOM[parseDate(iso).getMonth()];
+  const monthName = iso => t('months.long')[parseDate(iso).getMonth()];
 
   function formatDate(iso, withYear) {
     const d = parseDate(iso);
-    return `${d.getDate()} ${MONTHS[d.getMonth()]}${withYear ? ' ' + d.getFullYear() : ''}`;
+    return t('fmt.date', d.getDate(), d.getMonth(), withYear ? d.getFullYear() : null);
   }
   /**
    * Диапазон дат. Когда концы в разных годах, год печатается с обеих сторон:
@@ -177,7 +166,7 @@ const Store = (() => {
 
   /** 0 = понедельник … 6 = воскресенье. */
   const weekday = iso => (parseDate(iso).getDay() + 6) % 7;
-  const weekdayName = iso => WEEKDAYS[weekday(iso)];
+  const weekdayName = iso => t('weekdays')[weekday(iso)];
   const isWeekend = iso => weekday(iso) > 4;
   /** Понедельник недели, в которую попадает дата. */
   const weekStart = iso => addDays(iso, -weekday(iso));
@@ -272,7 +261,7 @@ const Store = (() => {
       case 'month':   return iso.slice(0, 7);
       case 'quarter': return `${iso.slice(0, 4)}-Q${quarterOf(iso)}`;
       case 'year':    return iso.slice(0, 4);
-      default:        throw new Error(`Неизвестный горизонт: ${horizon}`);
+      default:        throw new Error(t('err.horizon', horizon));
     }
   }
 
@@ -371,11 +360,11 @@ const Store = (() => {
   function periodLabel(key) {
     const start = keyStart(key);
     switch (keyHorizon(key)) {
-      case 'inbox':   return 'Входящие';
-      case 'day':     return `${parseDate(key).getDate()} ${MONTHS_GEN[parseDate(key).getMonth()]}`;
-      case 'week':    return `Неделя ${Number(String(key).slice(6))}`;
-      case 'month':   return `${MONTHS_NOM[parseDate(start).getMonth()]} ${start.slice(0, 4)}`;
-      case 'quarter': return `${ROMAN[Number(key.slice(6)) - 1]} квартал ${key.slice(0, 4)}`;
+      case 'inbox':   return t('label.inbox');
+      case 'day':     return t('label.day', parseDate(key).getDate(), parseDate(key).getMonth());
+      case 'week':    return t('label.week', Number(String(key).slice(6)));
+      case 'month':   return t('label.month', parseDate(start).getMonth(), start.slice(0, 4));
+      case 'quarter': return t('label.quarter', Number(key.slice(6)), key.slice(0, 4));
       case 'year':    return String(key);
       default:        return String(key);
     }
@@ -386,15 +375,15 @@ const Store = (() => {
     const horizon = keyHorizon(key);
     const start = keyStart(key);
     switch (horizon) {
-      case 'inbox':   return 'пришло в голову — разобрать';
+      case 'inbox':   return t('sub.inbox');
       case 'day':     return weekdayName(key);
       case 'week':    return formatRange(start, keyEnd(key), true);
-      case 'month':   return `квартал ${ROMAN[quarterOf(start) - 1]}`;
+      case 'month':   return t('sub.month', quarterOf(start));
       case 'quarter': {
         const m = parseDate(start).getMonth();
-        return `${MONTHS_NOM[m].toLowerCase()} — ${MONTHS_NOM[m + 2].toLowerCase()}`;
+        return t('sub.quarter', m, m + 2);
       }
-      case 'year':    return 'год целиком';
+      case 'year':    return t('sub.year');
       default:        return '';
     }
   }
@@ -404,7 +393,10 @@ const Store = (() => {
   function emptyState() {
     return {
       version: 3,
-      settings: { horizon: 'overview', spans: { ...DEFAULT_SPANS } },
+      settings: {
+        horizon: 'overview', lang: I18N.DEFAULT,
+        spans: { ...DEFAULT_SPANS }, visible: { ...DEFAULT_VISIBLE },
+      },
       periods: {},
     };
   }
@@ -427,11 +419,20 @@ const Store = (() => {
     if (typeof settings.horizon === 'string') next.settings.horizon = settings.horizon;
     else if (typeof settings.view === 'string') next.settings.horizon = settings.view;
 
+    if (I18N.LANGS.includes(settings.lang)) next.settings.lang = settings.lang;
+
     const spans = settings.spans && typeof settings.spans === 'object' ? settings.spans : {};
     HORIZONS.forEach(horizon => {
       const value = Number(spans[horizon]);
       if (SPAN_OPTIONS[horizon].includes(value)) next.settings.spans[horizon] = value;
     });
+    const visible = settings.visible && typeof settings.visible === 'object' ? settings.visible : {};
+    HORIZONS.forEach(horizon => {
+      if (typeof visible[horizon] === 'boolean') next.settings.visible[horizon] = visible[horizon];
+    });
+    // Спрятать всё нельзя: остаться без единой вкладки — это не настройка, а тупик
+    if (!HORIZONS.some(h => next.settings.visible[h])) next.settings.visible = { ...DEFAULT_VISIBLE };
+
     // До появления окон настройка была одна — количество дней в агенде
     if (spans.day === undefined && SPAN_OPTIONS.day.includes(Number(settings.range))) {
       next.settings.spans.day = Number(settings.range);
@@ -453,9 +454,7 @@ const Store = (() => {
           important:   !!t.important,
           cancelled:   !!t.cancelled && !t.done,
           cancelledAt: !t.done && t.cancelled ? (t.cancelledAt || null) : null,
-          carriedFrom: t.carriedFrom && t.carriedFrom.key
-            ? { key: String(t.carriedFrom.key), label: String(t.carriedFrom.label || t.carriedFrom.key) }
-            : null,
+          carriedFrom: t.carriedFrom && t.carriedFrom.key ? { key: String(t.carriedFrom.key) } : null,
           carryCount:  Number.isFinite(+t.carryCount) && +t.carryCount > 0 ? Math.floor(+t.carryCount) : 0,
           createdAt:   t.createdAt || new Date().toISOString(),
         }));
@@ -475,7 +474,7 @@ const Store = (() => {
 
   function load() {
     try {
-      const raw = localStorage.getItem(KEY) || localStorage.getItem(LEGACY_KEY);
+      const raw = [KEY, ...LEGACY_KEYS].map(k => localStorage.getItem(k)).find(Boolean);
       if (raw) state = normalize(JSON.parse(raw));
     } catch (err) {
       console.warn('[store] не удалось прочитать localStorage:', err);
@@ -483,6 +482,7 @@ const Store = (() => {
     if (!state) {                  // первый запуск или битые данные — начинаем с чистого листа
       state = emptyState();
     }
+    I18N.setLang(state.settings.lang);
     save();                        // сразу переносим данные на актуальный ключ и версию
     return state;
   }
@@ -522,6 +522,29 @@ const Store = (() => {
   function setSetting(name, value) {
     state.settings[name] = value;
     save();
+  }
+
+  /** Язык интерфейса: словарь и настройка меняются вместе, иначе они разъедутся после перезагрузки. */
+  const lang = () => I18N.lang;
+  function setLang(next) {
+    if (!I18N.setLang(next)) return false;
+    state.settings.lang = next;
+    save();
+    return true;
+  }
+
+  /* ───────────── Видимость горизонтов ───────────── */
+
+  const isVisible = horizon => state.settings.visible[horizon] !== false;
+  const visibleHorizons = () => HORIZONS.filter(isVisible);
+
+  /** @returns {boolean} применилось ли; последний видимый горизонт спрятать нельзя */
+  function setVisible(horizon, value) {
+    if (!HORIZONS.includes(horizon)) return false;
+    if (!value && visibleHorizons().length === 1 && isVisible(horizon)) return false;
+    state.settings.visible[horizon] = !!value;
+    save();
+    return true;
   }
 
   /** Сколько периодов горизонта показывать рядом. */
@@ -812,7 +835,7 @@ const Store = (() => {
     const moved = {
       ...task,
       cancelled: false, cancelledAt: null,               // перенос — это не отмена
-      carriedFrom: { key, label: periodLabel(key) },
+      carriedFrom: { key },      // подпись считается при показе — на текущем языке
       carryCount: (task.carryCount || 0) + 1,
     };
     period(target, true).tasks.push(moved);
@@ -856,7 +879,7 @@ const Store = (() => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `life-progress-${today()}.json`;
+    a.download = `doozy-${today()}.json`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -866,7 +889,7 @@ const Store = (() => {
   /** Нормализованное состояние из текста файла либо ошибка. */
   function parseImport(text) {
     const next = normalize(JSON.parse(text));
-    if (!next) throw new Error('Файл не похож на бэкап Life Progress');
+    if (!next) throw new Error(t('err.notBackup'));
     return next;
   }
 
@@ -886,7 +909,8 @@ const Store = (() => {
     // категории
     parseTaskInput, taskInputValue, normalizeCategory, categories,
     // состояние
-    load, save, onChange, get, setSetting, spanOf, setSpan,
+    load, save, onChange, get, setSetting, lang, setLang, spanOf, setSpan,
+    isVisible, visibleHorizons, setVisible,
     period, tasks, summary, taskById, orderedTasks, stats, setSummary,
     // цели и шаги
     findTask, subtasks, subtaskStats, setParent, goalCandidates, descendantIds, ancestorIds,

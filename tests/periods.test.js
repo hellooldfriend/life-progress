@@ -101,13 +101,15 @@ test('недели месяца берутся целиком, вместе с �
 });
 
 test('подписи периодов читаются по-человечески', () => {
-  assert.equal(Store.periodLabel('2026-08-29'), '29 августа');
-  assert.equal(Store.periodLabel('2026-W35'), 'Неделя 35');
-  assert.equal(Store.periodLabel('2026-08'), 'Август 2026');
-  assert.equal(Store.periodLabel('2026-Q3'), 'III квартал 2026');
+  assert.equal(Store.periodLabel('2026-08-29'), 'August 29');
+  assert.equal(Store.periodLabel('2026-W35'), 'Week 35');
+  assert.equal(Store.periodLabel('2026-08'), 'August 2026');
+  assert.equal(Store.periodLabel('2026-Q3'), 'Q3 2026');
   assert.equal(Store.periodLabel('2026'), '2026');
 
-  assert.equal(Store.periodSub('2026-08-29'), 'суббота');
-  assert.equal(Store.periodSub('2026-W35'), '24 авг — 30 авг 2026');
-  assert.equal(Store.periodSub('2026-Q3'), 'июль — сентябрь');
+  assert.equal(Store.periodSub('2026-08-29'), 'Saturday');
+  assert.equal(Store.periodSub('2026-W35'), 'Aug 24 — Aug 30, 2026');
+  assert.equal(Store.periodSub('2026-08'), 'Q3');
+  assert.equal(Store.periodSub('2026-Q3'), 'July — September');
+  assert.equal(Store.periodSub('2026'), 'whole year');
 });

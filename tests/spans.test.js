@@ -38,28 +38,25 @@ test('ширина окна хранится по горизонтам и про
   assert.equal(Store.spanOf('month'), 3, 'после отказа значение прежнее');
 });
 
-test('склонение числительных', () => {
+test('английские числительные: единственное и множественное', () => {
   const { Store } = loadApp();
-  const days = n => Store.plural(n, 'день', 'дня', 'дней');
-  assert.deepEqual([1, 2, 5, 11, 14, 21, 22, 30].map(days),
-    ['день', 'дня', 'дней', 'дней', 'дней', 'день', 'дня', 'дней']);
+  const days = n => Store.plural(n, 'day', 'days', 'days');
+  assert.deepEqual([1, 2, 5, 11, 21].map(days), ['day', 'days', 'days', 'days', 'days'],
+    '21 day — русская ловушка, в английском 21 days');
 
-  assert.equal(Store.spanLabel('week', 1), '1 неделя');
-  assert.equal(Store.spanLabel('week', 2), '2 недели');
-  assert.equal(Store.spanLabel('week', 4), '4 недели');
-  assert.equal(Store.spanLabel('month', 3), '3 месяца');
-  assert.equal(Store.spanLabel('quarter', 4), '4 квартала');
-  assert.equal(Store.spanLabel('year', 2), '2 года');
-  assert.equal(Store.spanLabel('year', 5), '5 лет');
-  assert.equal(Store.spanLabel('day', 30), '30 дней');
+  assert.equal(Store.spanLabel('week', 1), '1 week');
+  assert.equal(Store.spanLabel('week', 4), '4 weeks');
+  assert.equal(Store.spanLabel('month', 3), '3 months');
+  assert.equal(Store.spanLabel('year', 1), '1 year');
+  assert.equal(Store.spanLabel('day', 30), '30 days');
 });
 
 test('заголовок окна схлопывает повторы', () => {
   const { Store } = loadApp();
-  assert.equal(Store.spanTitle('2026-W35', '2026-W37'), 'Неделя 35 — 37', 'общее начало');
-  assert.equal(Store.spanTitle('2026-09', '2026-11'), 'Сентябрь — Ноябрь 2026', 'общий год');
-  assert.equal(Store.spanTitle('2026-Q3', '2026-Q4'), 'III — IV квартал 2026', 'общий хвост в два слова');
+  assert.equal(Store.spanTitle('2026-W35', '2026-W37'), 'Week 35 — 37', 'общее начало');
+  assert.equal(Store.spanTitle('2026-09', '2026-11'), 'September — November 2026', 'общий год');
+  assert.equal(Store.spanTitle('2026-Q3', '2026-Q4'), 'Q3 — Q4 2026', 'общий год у кварталов');
   assert.equal(Store.spanTitle('2026', '2028'), '2026 — 2028');
-  assert.equal(Store.spanTitle('2026-12', '2027-02'), 'Декабрь 2026 — Февраль 2027', 'разные годы — год дважды');
-  assert.equal(Store.spanTitle('2026-09', '2026-09'), 'Сентябрь 2026', 'окно в один период');
+  assert.equal(Store.spanTitle('2026-12', '2027-02'), 'December 2026 — February 2027', 'разные годы — год дважды');
+  assert.equal(Store.spanTitle('2026-09', '2026-09'), 'September 2026', 'окно в один период');
 });

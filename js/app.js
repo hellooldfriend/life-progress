@@ -10,6 +10,19 @@
 
   const $ = sel => document.querySelector(sel);
   const content = $('#content');
+  const t = (...args) => I18N.t(...args);
+
+  $('#btnSettings').addEventListener('click', () => UI.toggleSettings());
+  $('#settings').addEventListener('change', e => {
+    const box = e.target.closest('[data-visible]');
+    if (box) UI.setVisible(box.dataset.visible, box.checked);
+  });
+
+  // Переключатель языка показывает не текущий язык, а тот, на который переключит
+  $('#btnLang').addEventListener('click', () => {
+    const next = I18N.LANGS[(I18N.LANGS.indexOf(I18N.lang) + 1) % I18N.LANGS.length];
+    UI.setLang(next);
+  });
 
   /* ═════════════ Вкладки и навигация по времени ═════════════ */
 
@@ -239,16 +252,43 @@
       try {
         next = Store.parseImport(reader.result);
       } catch (err) {
-        alert(`Не удалось прочитать файл: ${err.message}`);
+        alert(t('msg.importFail', err.message));
         return;
       }
       const count = Object.keys(next.periods).length;
-      if (!confirm(`Заменить текущие данные на импортируемые?\nВ файле периодов: ${count}.\nТекущие данные будут перезаписаны.`)) return;
+      if (!confirm(t('msg.importConfirm', count))) return;
       Store.replaceState(next);
       UI.render();
     };
-    reader.onerror = () => alert('Не удалось прочитать файл.');
+    reader.onerror = () => alert(t('msg.readFail'));
     reader.readAsText(file);
+  });
+
+  /* ═════════════ Автосохранение в файл ═════════════ */
+
+  /**
+   * Кнопка меняет смысл вместе со статусом: подключить, вернуть разрешение,
+   * отключить. Всё — из обработчика клика: без жеста пользователя браузер
+   * не покажет ни выбор файла, ни запрос разрешения.
+   */
+  $('#btnFile').addEventListener('click', async () => {
+    const { status } = FileSync.state();
+
+    if (status === 'on') {
+      if (confirm(t('msg.disconnect'))) {
+        await FileSync.disconnect();
+      }
+      return;
+    }
+    if (status === 'needs-permission') {
+      await FileSync.grantPermission();
+      return;
+    }
+
+    const loaded = await FileSync.connect(existing => {
+      return confirm(t('msg.fileHasData', Object.keys(existing.periods).length));
+    });
+    if (loaded) UI.render();
   });
 
   /* ═════════════ Горячие клавиши ═════════════ */
@@ -266,5 +306,6 @@
   /* ═════════════ Старт ═════════════ */
 
   Store.load();
+  FileSync.init(UI.renderFileSync);
   UI.goTo('overview');   // приложение открывается на обзоре, дальше вкладка держится до перезагрузки
 })();

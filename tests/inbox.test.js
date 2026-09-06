@@ -14,7 +14,7 @@ test('входящие — свой горизонт, а не период', () 
   assert.equal(Store.keyEnd(INBOX), null, 'конца тоже');
   assert.equal(Store.nextKey(INBOX), null, 'следующих входящих не бывает');
   assert.deepEqual(Store.children(INBOX), []);
-  assert.equal(Store.periodLabel(INBOX), 'Входящие');
+  assert.equal(Store.periodLabel(INBOX), 'Inbox');
 });
 
 test('во входящие складываются обычные задачи, вместе с метками', () => {

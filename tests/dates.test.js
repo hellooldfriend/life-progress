@@ -50,7 +50,7 @@ test('dateRange отдаёт даты включительно', () => {
 test('день недели считается от понедельника', () => {
   assert.equal(Store.weekday('2026-08-24'), 0);              // понедельник
   assert.equal(Store.weekday('2026-08-30'), 6);              // воскресенье
-  assert.equal(Store.weekdayName('2026-08-29'), 'суббота');
+  assert.equal(Store.weekdayName('2026-08-29'), 'Saturday');
   assert.equal(Store.isWeekend('2026-08-28'), false);
   assert.equal(Store.isWeekend('2026-08-29'), true);
   assert.equal(Store.weekStart('2026-08-29'), '2026-08-24');
@@ -58,7 +58,7 @@ test('день недели считается от понедельника', (
 });
 
 test('formatRange показывает год, когда о нём просят или когда концы в разных годах', () => {
-  assert.equal(Store.formatRange('2026-08-24', '2026-08-30'), '24 авг — 30 авг');
-  assert.equal(Store.formatRange('2026-08-24', '2026-08-30', true), '24 авг — 30 авг 2026');
-  assert.equal(Store.formatRange('2026-12-28', '2027-01-03'), '28 дек 2026 — 3 янв 2027');
+  assert.equal(Store.formatRange('2026-08-24', '2026-08-30'), 'Aug 24 — Aug 30');
+  assert.equal(Store.formatRange('2026-08-24', '2026-08-30', true), 'Aug 24 — Aug 30, 2026');
+  assert.equal(Store.formatRange('2026-12-28', '2027-01-03'), 'Dec 28, 2026 — Jan 3, 2027');
 });

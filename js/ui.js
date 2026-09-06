@@ -14,13 +14,8 @@ const UI = (() => {
    * остальные совпадают с горизонтами. Обзора здесь нет: на него уводит
    * логотип, и в ряду вкладок он был бы вторым входом в то же место.
    */
-  const TABS = [
-    { id: 'days',    label: 'Дни' },
-    { id: 'week',    label: 'Неделя' },
-    { id: 'month',   label: 'Месяц' },
-    { id: 'quarter', label: 'Квартал' },
-    { id: 'year',    label: 'Год' },
-  ];
+  const TAB_IDS = ['days', 'week', 'month', 'quarter', 'year'];
+  const t = (...args) => I18N.t(...args);
   const OVERVIEW = 'overview';
 
   /**
@@ -28,7 +23,7 @@ const UI = (() => {
    * открывается на сегодня. Фильтр тоже: после перезагрузки спрятанные задачи
    * выглядели бы как пропавшие.
    */
-  const view = { cursor: Store.today(), category: '' };
+  const view = { cursor: Store.today(), category: '', settingsOpen: false };
 
   /** Задачи с раскрытой панелью шагов. Локально: раскрытие — жест, а не настройка. */
   const expanded = new Set();
@@ -63,15 +58,6 @@ const UI = (() => {
     tick:  '<svg class="check__tick" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.8"/></svg>',
   };
 
-  /** Единица измерения переноса — чтобы тег читался как «3-я неделя подряд». */
-  const CARRY_UNITS = {
-    day:     ['день', 'й'],
-    week:    ['неделя', 'я'],
-    month:   ['месяц', 'й'],
-    quarter: ['квартал', 'й'],
-    year:    ['год', 'й'],
-  };
-
   /* ═════════════ Мелкие блоки ═════════════ */
 
   /** Прогресс считается по активным задачам: отменённые в знаменатель не входят. */
@@ -80,7 +66,7 @@ const UI = (() => {
     return {
       pct: active ? Math.round(done / active * 100) : 0,
       count: `${done}/${active}`,
-      title: cancelled ? `Отменено задач: ${cancelled}` : '',
+      title: cancelled ? t('progress.cancelled', cancelled) : '',
     };
   }
 
@@ -112,11 +98,10 @@ const UI = (() => {
   function carryTagHTML(key, t) {
     const n = t.carryCount || 0;
     if (!n) return '';
-    const from = t.carriedFrom ? t.carriedFrom.label : '';
-    const title = `Переносится ${n}-й раз${from ? ` · последний раз из «${from}»` : ''}`;
-    if (n === 1) return tagHTML('carry', from ? `перенос из «${from}»` : 'перенос', title);
-    const [unit, suffix] = CARRY_UNITS[Store.keyHorizon(key)] || ['период', 'й'];
-    return tagHTML('longrun', `${n + 1}-${suffix} ${unit} подряд`, title);
+    const from = t.carriedFrom ? Store.periodLabel(t.carriedFrom.key) : '';
+    const title = I18N.t('tag.carryTitle', n, from);
+    if (n === 1) return tagHTML('carry', I18N.t('tag.carry', from), title);
+    return tagHTML('longrun', I18N.t('tag.carryRun', n + 1, Store.keyHorizon(key)), title);
   }
 
   /**
@@ -128,7 +113,7 @@ const UI = (() => {
     const parent = Store.findTask(t.parentId);
     if (!parent) return '';
     return `<button class="tag tag--parent" data-goto="${gotoAttr(parent.key)}"
-                    title="Часть цели «${esc(parent.task.text)}» · ${esc(Store.periodLabel(parent.key))}"
+                    title="${esc(I18N.t('tag.parentTitle', parent.task.text, Store.periodLabel(parent.key)))}"
             >↳ ${esc(parent.task.text)}</button>`;
   }
 
@@ -137,7 +122,7 @@ const UI = (() => {
     const { done, active } = Store.subtaskStats(t.id);
     if (!active && !done) return '';
     return `<button class="tag tag--steps" data-act="steps"
-                    title="Шаги цели">шаги ${done}/${active}</button>`;
+                    title="${esc(I18N.t('tag.stepsTitle'))}">${esc(I18N.t('tag.steps', done, active))}</button>`;
   }
 
   /** Кнопка действия над задачей. */
@@ -161,36 +146,36 @@ const UI = (() => {
 
     const tags = [
       t.category ? `<button class="tag tag--category" data-filter="${esc(t.category)}"
-                            title="Показать только «${esc(t.category)}»">#${esc(t.category)}</button>` : '',
+                            title="${esc(I18N.t('tag.categoryTitle', t.category))}">#${esc(t.category)}</button>` : '',
       carryTagHTML(key, t),
       parentTagHTML(t),
       stepsTagHTML(t),
-      t.cancelled ? tagHTML('cancelled', 'отменена', 'Задача снята — в прогресс не считается') : '',
+      t.cancelled ? tagHTML('cancelled', I18N.t('tag.cancelled'), I18N.t('tag.cancelledTitle')) : '',
       source ? `<button class="tag tag--source" data-goto="${source.tab}|${key}"
-                        title="Открыть период">${esc(source.label)}</button>` : '',
+                        title="${esc(I18N.t('tag.openPeriod'))}">${esc(source.label)}</button>` : '',
     ].join('');
 
     // На дашборде задачу не двигают по списку — её разбирают: сюда, снять или удалить
     const actions = customActions !== undefined ? customActions : source ? [
-      actionHTML('today', '⇥', `Перенести: ${Store.periodLabel(source.target)}`),
-      actionHTML('cancel', '⊘', 'Отменить — не буду делать'),
-      actionHTML('delete', '✕', 'Удалить'),
+      actionHTML('today', '⇥', I18N.t('act.moveTo', Store.periodLabel(source.target))),
+      actionHTML('cancel', '⊘', I18N.t('act.cancel')),
+      actionHTML('delete', '✕', I18N.t('act.delete')),
     ].join('') : [
-      canUp ? actionHTML('up', '↑', 'Выше') : '',
-      canDown ? actionHTML('down', '↓', 'Ниже') : '',
+      canUp ? actionHTML('up', '↑', I18N.t('act.up')) : '',
+      canDown ? actionHTML('down', '↓', I18N.t('act.down')) : '',
       !t.done && !t.cancelled
-        ? actionHTML('carry', '→', `Перенести: ${Store.periodLabel(Store.nextKey(key))}`) : '',
-      !t.done && !t.cancelled ? actionHTML('star', '★', 'Важное', 'task__icon--star') : '',
-      !t.cancelled ? actionHTML('steps', '⊞', 'Шаги и цель') : '',
+        ? actionHTML('carry', '→', I18N.t('act.moveTo', Store.periodLabel(Store.nextKey(key)))) : '',
+      !t.done && !t.cancelled ? actionHTML('star', '★', I18N.t('act.star'), 'task__icon--star') : '',
+      !t.cancelled ? actionHTML('steps', '⊞', I18N.t('act.steps')) : '',
       t.cancelled
-        ? actionHTML('cancel', '↺', 'Вернуть в работу')
-        : (!t.done ? actionHTML('cancel', '⊘', 'Отменить — не буду делать') : ''),
-      actionHTML('delete', '✕', 'Удалить'),
+        ? actionHTML('cancel', '↺', I18N.t('act.restore'))
+        : (!t.done ? actionHTML('cancel', '⊘', I18N.t('act.cancel')) : ''),
+      actionHTML('delete', '✕', I18N.t('act.delete')),
     ].join('');
 
     return `<li class="${cls}" data-key="${key}" data-id="${t.id}">
-      <button class="check" data-act="toggle" aria-pressed="${t.done}" aria-label="Выполнено">${ICONS.tick}</button>
-      <span class="task__text" data-act="edit" title="Изменить">${esc(t.text)}${tags}</span>
+      <button class="check" data-act="toggle" aria-pressed="${t.done}" aria-label="${esc(I18N.t('task.done'))}">${ICONS.tick}</button>
+      <span class="task__text" data-act="edit" title="${esc(I18N.t('task.edit'))}">${esc(t.text)}${tags}</span>
       <span class="task__actions">${actions}</span>
     </li>`;
   }
@@ -203,13 +188,13 @@ const UI = (() => {
     const cls = ['task', 'task--step', t.done && 'task--done', t.cancelled && 'task--cancelled']
       .filter(Boolean).join(' ');
     return `<li class="${cls}" data-key="${stepKey}" data-id="${t.id}">
-      <button class="check" data-act="toggle" aria-pressed="${t.done}" aria-label="Выполнено">${ICONS.tick}</button>
-      <span class="task__text" data-act="edit" title="Изменить">${esc(t.text)}
+      <button class="check" data-act="toggle" aria-pressed="${t.done}" aria-label="${esc(I18N.t('task.done'))}">${ICONS.tick}</button>
+      <span class="task__text" data-act="edit" title="${esc(I18N.t('task.edit'))}">${esc(t.text)}
         <button class="tag tag--source" data-goto="${gotoAttr(stepKey)}"
-                title="Открыть период">${esc(Store.periodLabel(stepKey))}</button>
+                title="${esc(I18N.t('tag.openPeriod'))}">${esc(Store.periodLabel(stepKey))}</button>
       </span>
       <span class="task__actions">
-        ${actionHTML('unlink', '⤫', 'Убрать из шагов — задача останется в своём периоде')}
+        ${actionHTML('unlink', '⤫', I18N.t('act.unlink'))}
       </span>
     </li>`;
   }
@@ -217,32 +202,33 @@ const UI = (() => {
   /** Панель под задачей: добавить шаг и выбрать, частью какой цели она сама является. */
   function stepPanelHTML(key, t) {
     const today = Store.today();
-    const targets = [
-      { horizon: 'day', label: 'сегодня' },
-      { horizon: 'week', label: 'неделя' },
-      { horizon: 'month', label: 'месяц' },
-    ];
+    const targets = FILE_TARGETS();
     const options = Store.goalCandidates(t.id).map(({ key: goalKey, task }) =>
       `<option value="${task.id}"${task.id === t.parentId ? ' selected' : ''}
        >${esc(Store.periodLabel(goalKey))} · ${esc(task.text)}</option>`).join('');
 
     return `<li class="steps-panel" data-key="${key}" data-id="${t.id}">
       <div class="steps-panel__row">
-        <input class="add__input" data-step="${t.id}" type="text" autocomplete="off" placeholder="новый шаг…">
+        <input class="add__input" data-step="${t.id}" type="text" autocomplete="off" placeholder="${esc(I18N.t('steps.placeholder'))}">
         ${targets.map(({ horizon, label }) => `<button class="task__file" data-act="step" data-to="${horizon}"
-                 title="Шаг в период: ${esc(Store.periodLabel(Store.periodKey(horizon, today)))}">${label}</button>`).join('')}
+                 title="${esc(I18N.t('steps.into', Store.periodLabel(Store.periodKey(horizon, today))))}">${esc(label)}</button>`).join('')}
       </div>
       <label class="steps-panel__row steps-panel__link">
-        часть цели
+        ${esc(I18N.t('steps.parent'))}
         <select class="select" data-act="link">
-          <option value="">— сама по себе</option>
+          <option value="">${esc(I18N.t('steps.none'))}</option>
           ${options}
         </select>
       </label>
     </li>`;
   }
 
-  function taskListHTML(key, placeholder) {
+  /**
+   * @param {object} [opts] compact — без стрелок порядка: в окне сравнения периодов
+   *   задачи двигают между периодами, а не внутри списка, а место под иконки
+   *   в узкой карточке дороже
+   */
+  function taskListHTML(key, placeholder, opts = {}) {
     const list = Store.orderedTasks(key, view.category);
     // Шаг, лежащий в том же периоде, что и цель, показывается один раз — под целью
     const own = new Set(list.map(t => t.id));
@@ -251,22 +237,23 @@ const UI = (() => {
     const sameGroup = (a, b) => a && b && !!a.done === !!b.done && !!a.cancelled === !!b.cancelled;
 
     const rows = top.map((t, i) => taskHTML(key, t, {
-      canUp: sameGroup(t, top[i - 1]),
-      canDown: sameGroup(t, top[i + 1]),
+      canUp: !opts.compact && sameGroup(t, top[i - 1]),
+      canDown: !opts.compact && sameGroup(t, top[i + 1]),
     }) +
       Store.subtasks(t.id).map(step => stepRowHTML(step.key, step.task)).join('') +
       (expanded.has(t.id) ? stepPanelHTML(key, t) : '')).join('');
 
     const body = top.length
       ? `<ul class="tasks">${rows}</ul>`
-      : `<div class="empty">${view.category ? `нет задач с меткой #${esc(view.category)}` : 'пусто'}</div>`;
+      : `<div class="empty">${esc(view.category ? t('empty.filtered', view.category) : t('empty'))}</div>`;
 
-    const hint = view.category ? `${placeholder || 'новая задача'} · #${view.category}` : (placeholder || 'новая задача');
+    const base = placeholder || t('add.task');
+    const hint = view.category ? `${base} · #${view.category}` : base;
     return `${body}
       <form class="add" data-key="${key}">
         <input class="add__input" data-add="${key}" type="text" autocomplete="off"
                placeholder="${esc(hint)}">
-        <button class="add__btn" type="submit" aria-label="Добавить">+</button>
+        <button class="add__btn" type="submit" aria-label="${esc(t('task.add'))}">+</button>
       </form>`;
   }
 
@@ -274,7 +261,7 @@ const UI = (() => {
     return `<div class="summary">
       <label class="summary__label" for="sum-${key}">${esc(label)}</label>
       <textarea class="summary__input" id="sum-${key}" data-summary="${key}"
-                placeholder="Что произошло, что получилось, важные события…">${esc(Store.summary(key))}</textarea>
+                placeholder="${esc(t('summary.placeholder'))}">${esc(Store.summary(key))}</textarea>
     </div>`;
   }
 
@@ -299,7 +286,7 @@ const UI = (() => {
         <div>${title}${o.sub ? `<div class="card__sub">${esc(o.sub)}</div>` : ''}</div>
         ${progressHTML(o.key)}
       </header>
-      ${taskListHTML(o.key, o.placeholder)}
+      ${taskListHTML(o.key, o.placeholder, { compact: o.compact })}
       ${o.summaryLabel ? summaryHTML(o.key, o.summaryLabel) : ''}
       ${o.excerpt ? excerptHTML(o.key) : ''}
     </section>`;
@@ -310,18 +297,18 @@ const UI = (() => {
     return cardHTML({
       key: iso,
       title: Store.periodLabel(iso),
-      sub: Store.weekdayName(iso) + (isToday ? ' · сегодня' : ''),
+      sub: Store.weekdayName(iso) + (isToday ? t('today.mark') : ''),
       cls: [isToday && 'card--today', Store.isWeekend(iso) && 'card--weekend'].filter(Boolean).join(' '),
-      placeholder: 'задача на день',
+      placeholder: t('add.day'),
     });
   }
 
   /** Карточка-обзор подпериода: заголовок кликабелен и уводит в его собственный вид. */
-  const childCardHTML = (key, goTo, placeholder, excerpt) => cardHTML({
+  const childCardHTML = (key, goTo, placeholder, excerpt, compact) => cardHTML({
     key,
     title: Store.periodLabel(key),
     sub: Store.periodSub(key),
-    goTo, placeholder, excerpt,
+    goTo, placeholder, excerpt, compact,
   });
 
   /** Главная карточка вида: задачи периода и его итоги. */
@@ -340,12 +327,11 @@ const UI = (() => {
   }
 
   /** Подписи горизонта: что писать в поле ввода и в блоке итогов. */
-  const HORIZON_TEXT = {
-    week:    { summary: 'Итоги недели',   placeholder: 'цель или задача на неделю' },
-    month:   { summary: 'Итоги месяца',   placeholder: 'цель или задача на месяц' },
-    quarter: { summary: 'Итоги квартала', placeholder: 'цель или задача на квартал' },
-    year:    { summary: 'Итоги года',     placeholder: 'цель или задача на год' },
-  };
+  const HORIZON_TEXT = horizon => ({ summary: t(`summary.${horizon}`), placeholder: t(`add.${horizon}`) });
+
+  /** Куда разбирают входящие и кладут новые шаги: три ближайших из видимых горизонтов. */
+  const FILE_TARGETS = () => Store.visibleHorizons().slice(0, 3)
+    .map(horizon => ({ horizon, label: t(`target.${horizon}`) }));
 
   /** Ключи периодов, которые показывает текущая вкладка. */
   const spanKeys = horizon =>
@@ -357,63 +343,76 @@ const UI = (() => {
    */
   function renderSpan(horizon) {
     const keys = spanKeys(horizon);
-    const cols = keys.length > 2 ? 'grid--3' : 'grid--2';
-    const { placeholder } = HORIZON_TEXT[horizon];
-    return `<div class="grid ${cols}">${
-      keys.map(key => childCardHTML(key, horizon, placeholder, true)).join('')}</div>`;
+    const { placeholder } = HORIZON_TEXT(horizon);
+    return `<div class="grid span-grid">${
+      keys.map(key => childCardHTML(key, horizon, placeholder, true, true)).join('')}</div>`;
   }
 
   function renderWeek() {
     if (Store.spanOf('week') > 1) return renderSpan('week');
     const key = currentKey();
     const days = Store.children(key);
-    return focusCardHTML(key, 'Итоги недели', 'цель или задача на неделю') +
-      '<div class="section-label">Дни недели</div>' +
-      `<div class="grid grid--3">${days.map(dayCardHTML).join('')}</div>`;
+    return focusCardHTML(key, t('summary.week'), t('add.week')) +
+      (Store.isVisible('day')
+        ? `<div class="section-label">${esc(t('section.days'))}</div>` +
+          `<div class="grid grid--3">${days.map(dayCardHTML).join('')}</div>`
+        : '');
   }
 
   function renderMonth() {
     if (Store.spanOf('month') > 1) return renderSpan('month');
     const key = currentKey();
-    const weeks = Store.children(key).map(w => childCardHTML(w, 'week', 'задача на неделю'));
-    return focusCardHTML(key, 'Итоги месяца', 'цель или задача на месяц') +
-      '<div class="section-label">Недели месяца</div>' +
-      `<div class="grid grid--2">${weeks.join('')}</div>`;
+    // Итоги недели видны и отсюда: месяц читают как сумму недель
+    const weeks = Store.children(key).map(w => childCardHTML(w, 'week', t('add.childWeek'), true));
+    return focusCardHTML(key, t('summary.month'), t('add.month')) +
+      (Store.isVisible('week')
+        ? `<div class="section-label">${esc(t('section.weeks'))}</div>` +
+          `<div class="grid grid--2">${weeks.join('')}</div>`
+        : '');
   }
 
   function renderQuarter() {
     if (Store.spanOf('quarter') > 1) return renderSpan('quarter');
     const key = currentKey();
-    const months = Store.children(key).map(m => childCardHTML(m, 'month', 'задача на месяц', true));
-    return focusCardHTML(key, 'Итоги квартала', 'цель или задача на квартал') +
-      '<div class="section-label">Месяцы квартала</div>' +
-      `<div class="grid grid--3">${months.join('')}</div>`;
+    const months = Store.children(key).map(m => childCardHTML(m, 'month', t('add.childMonth'), true));
+    return focusCardHTML(key, t('summary.quarter'), t('add.quarter')) +
+      (Store.isVisible('month')
+        ? `<div class="section-label">${esc(t('section.months'))}</div>` +
+          `<div class="grid grid--3">${months.join('')}</div>`
+        : '');
   }
 
   function renderYear() {
     if (Store.spanOf('year') > 1) return renderSpan('year');
     const key = currentKey();
-    const quarters = Store.children(key).map(q => childCardHTML(q, 'quarter', 'задача на квартал', true));
+    const quarters = Store.children(key).map(q => childCardHTML(q, 'quarter', t('add.childQuarter'), true));
 
     // Двенадцать месяцев одной сводкой: где есть задачи, а где уже записаны итоги
     const months = Array.from({ length: 12 }, (_, i) => Store.periodKey('month', `${key}-${String(i + 1).padStart(2, '0')}-01`))
       .map(mk => {
         const { done, total } = Store.stats(mk);
-        const marks = [total ? `${done}/${total}` : '—', Store.summary(mk).trim() && 'итоги'].filter(Boolean);
-        return `<div class="mini">
-          <button class="link" data-goto="month|${mk}">${esc(Store.monthName(Store.keyStart(mk)))}</button>
-          <span class="mini__count">${marks.join(' · ')}</span>
+        const marks = [total ? `${done}/${total}` : '—'].filter(Boolean);
+        return `<div class="mini mini--block">
+          <div class="mini__row">
+            <button class="link" data-goto="month|${mk}">${esc(Store.monthName(Store.keyStart(mk)))}</button>
+            <span class="mini__count">${marks.join(' · ')}</span>
+          </div>
+          ${excerptHTML(mk)}
         </div>`;
       });
 
-    return focusCardHTML(key, 'Итоги года', 'цель или задача на год') +
-      '<div class="section-label">Кварталы</div>' +
-      `<div class="grid grid--4">${quarters.join('')}</div>` +
-      '<div class="section-label">Месяцы</div>' +
-      `<div class="grid grid--2">
-        <section class="card">${months.slice(0, 6).join('')}</section>
-        <section class="card">${months.slice(6).join('')}</section>
-      </div>`;
+    return focusCardHTML(key, t('summary.year'), t('add.year')) +
+      (Store.isVisible('quarter')
+        ? `<div class="section-label">${esc(t('section.quarters'))}</div>` +
+          `<div class="grid grid--4">${quarters.join('')}</div>`
+        : '') +
+      (Store.isVisible('month')
+        ? `<div class="section-label">${esc(t('section.monthsOfYear'))}</div>` +
+          `<div class="grid grid--2">
+            <section class="card">${months.slice(0, 6).join('')}</section>
+            <section class="card">${months.slice(6).join('')}</section>
+          </div>`
+        : '');
   }
 
   /* ═════════════ Обзор ═════════════ */
@@ -428,25 +427,25 @@ const UI = (() => {
 
   /** «Висит 3 дня» — понятнее, чем дата периода, который кончился. */
   function ageLabel(days) {
-    if (days <= 1) return 'вчера';
-    if (days < 7) return `${days} дн. назад`;
-    if (days < 30) return `${Math.round(days / 7)} нед. назад`;
-    return `${Math.round(days / 30)} мес. назад`;
+    if (days <= 1) return t('age.yesterday');
+    if (days < 7) return t('age.days', days);
+    if (days < 30) return t('age.weeks', Math.round(days / 7));
+    return t('age.months', Math.round(days / 30));
   }
 
   function attentionHTML() {
     const { overdue, stuck, retros, total } = Insights.attention(Store.today());
     if (!total) {
-      return '<div class="section-label">Разгрести</div>' +
-        '<section class="card"><div class="empty">хвостов нет — всё разобрано</div></section>';
+      return `<div class="section-label">${esc(t('section.attention'))}</div>` +
+        `<section class="card"><div class="empty">${esc(t('attention.none'))}</div></section>`;
     }
 
     const blocks = [];
     if (overdue.length) {
       blocks.push(`<section class="card">
         <header class="card__head"><div>
-          <h2 class="card__title">Просрочено</h2>
-          <div class="card__sub">период кончился, задача осталась</div>
+          <h2 class="card__title">${esc(t('attention.overdue'))}</h2>
+          <div class="card__sub">${esc(t('attention.overdueSub'))}</div>
         </div><span class="badge">${overdue.length}</span></header>
         <ul class="tasks">${overdue.map(item =>
           attentionRowHTML(item, `${Store.periodLabel(item.key)} · ${ageLabel(item.ageDays)}`)).join('')}</ul>
@@ -455,8 +454,8 @@ const UI = (() => {
     if (stuck.length) {
       blocks.push(`<section class="card">
         <header class="card__head"><div>
-          <h2 class="card__title">Залипло</h2>
-          <div class="card__sub">переезжает из периода в период — разрезать или снять</div>
+          <h2 class="card__title">${esc(t('attention.stuck'))}</h2>
+          <div class="card__sub">${esc(t('attention.stuckSub'))}</div>
         </div><span class="badge">${stuck.length}</span></header>
         <ul class="tasks">${stuck.map(item =>
           attentionRowHTML(item, Store.periodLabel(item.key))).join('')}</ul>
@@ -465,17 +464,17 @@ const UI = (() => {
     if (retros.length) {
       blocks.push(`<section class="card">
         <header class="card__head"><div>
-          <h2 class="card__title">Итоги не записаны</h2>
-          <div class="card__sub">период закончился, ретроспектива пустая</div>
+          <h2 class="card__title">${esc(t('attention.retros'))}</h2>
+          <div class="card__sub">${esc(t('attention.retrosSub'))}</div>
         </div><span class="badge">${retros.length}</span></header>
         <ul class="retros">${retros.map(r => `<li class="mini">
           <span>${esc(Store.periodLabel(r.key))} <span class="card__sub">${esc(Store.periodSub(r.key))}</span></span>
-          <button class="link" data-goto="${r.horizon}|${r.key}">написать →</button>
+          <button class="link" data-goto="${r.horizon}|${r.key}">${esc(t('attention.write'))}</button>
         </li>`).join('')}</ul>
       </section>`);
     }
 
-    return `<div class="section-label">Разгрести · ${total}</div>
+    return `<div class="section-label">${esc(t('section.attention'))} · ${total}</div>
       <div class="grid grid--2">${blocks.join('')}</div>`;
   }
 
@@ -487,51 +486,49 @@ const UI = (() => {
     const key = Store.INBOX_KEY;
     const list = Store.orderedTasks(key, view.category);
     const today = Store.today();
-    const targets = [
-      { horizon: 'day', label: 'сегодня' },
-      { horizon: 'week', label: 'неделя' },
-      { horizon: 'month', label: 'месяц' },
-    ];
+    const targets = FILE_TARGETS();
 
-    const rows = list.map(t => {
-      const actions = t.done || t.cancelled
-        ? actionHTML('delete', '✕', 'Удалить')
+    const rows = list.map(task => {
+      const actions = task.done || task.cancelled
+        ? actionHTML('delete', '✕', t('act.delete'))
         : targets.map(({ horizon, label }) =>
             `<button class="task__file" data-act="file" data-to="${horizon}"
-                     title="Перенести: ${esc(Store.periodLabel(Store.periodKey(horizon, today)))}">${label}</button>`
-          ).join('') + actionHTML('delete', '✕', 'Удалить');
-      return taskHTML(key, t, { actions });
+                     title="${esc(t('act.moveTo', Store.periodLabel(Store.periodKey(horizon, today))))}">${esc(label)}</button>`
+          ).join('') + actionHTML('delete', '✕', t('act.delete'));
+      return taskHTML(key, task, { actions });
     }).join('');
 
-    return `<div class="section-label">Входящие${list.length ? ` · ${list.length}` : ''}</div>
+    return `<div class="section-label">${esc(t('section.inbox'))}${list.length ? ` · ${list.length}` : ''}</div>
       <section class="card">
-        ${list.length ? `<ul class="tasks">${rows}</ul>` : '<div class="empty">пусто — всё разобрано</div>'}
+        ${list.length ? `<ul class="tasks">${rows}</ul>` : `<div class="empty">${esc(t('inbox.empty'))}</div>`}
         <form class="add" data-key="${key}">
           <input class="add__input" data-add="${key}" type="text" autocomplete="off"
-                 placeholder="пришло в голову — записать и разобрать потом">
-          <button class="add__btn" type="submit" aria-label="Записать">+</button>
+                 placeholder="${esc(t('inbox.placeholder'))}">
+          <button class="add__btn" type="submit" aria-label="${esc(t('inbox.capture'))}">+</button>
         </form>
       </section>`;
   }
 
   function renderOverview() {
     const today = Store.today();
-    const [day, ...rest] = Insights.verticalKeys(today);
+    const keys = Insights.verticalKeys(today).filter(({ horizon }) => Store.isVisible(horizon));
+    const day = keys.find(k => k.horizon === 'day');
+    const rest = keys.filter(k => k.horizon !== 'day');
 
-    const todayCard = cardHTML({
+    const todayCard = day ? cardHTML({
       key: day.key,
-      title: 'Сегодня',
+      title: t('today'),
       sub: `${Store.periodLabel(day.key)}, ${Store.weekdayName(day.key)}`,
       focus: true,
-      placeholder: 'задача на день',
-    });
+      placeholder: t('add.day'),
+    }) : '';
     const horizons = rest.map(({ horizon, key }) =>
-      childCardHTML(key, horizon, `цель на этот период`)).join('');
+      childCardHTML(key, horizon, t('add.period'), true)).join('');
 
     return inboxHTML() +
-      '<div class="section-label">Сейчас</div>' +
+      `<div class="section-label">${esc(t('section.now'))}</div>` +
       todayCard +
-      `<div class="grid grid--4 grid--gap-top">${horizons}</div>` +
+      `<div class="grid grid--4${day ? ' grid--gap-top' : ''}">${horizons}</div>` +
       attentionHTML();
   }
 
@@ -543,9 +540,76 @@ const UI = (() => {
   /* ═════════════ Каркас ═════════════ */
 
   function renderTabs() {
-    $('#tabs').innerHTML = TABS.map(t =>
-      `<button class="tab" role="tab" data-tab="${t.id}" aria-selected="${t.id === tab()}">${t.label}</button>`
+    $('#tabs').innerHTML = TAB_IDS.filter(id => Store.isVisible(horizonOf(id))).map(id =>
+      `<button class="tab" role="tab" data-tab="${id}" aria-selected="${id === tab()}">${esc(t(`tab.${id}`))}</button>`
     ).join('');
+  }
+
+  /** Полоса настроек: чекбокс на каждый горизонт. Последний оставшийся выключить нельзя. */
+  function renderSettings() {
+    const box = $('#settings');
+    box.hidden = !view.settingsOpen;
+    if (!view.settingsOpen) return;
+    const single = Store.visibleHorizons().length === 1;
+    box.innerHTML = `<span class="settings__label">${esc(t('settings'))}</span>` +
+      Store.HORIZONS.map(h => {
+        const on = Store.isVisible(h);
+        const locked = on && single;
+        return `<label class="chip chip--check${on ? ' chip--on' : ''}"${locked ? ` title="${esc(t('settings.last'))}"` : ''}>
+          <input type="checkbox" data-visible="${h}"${on ? ' checked' : ''}${locked ? ' disabled' : ''}>
+          ${esc(t(`tab.${tabForHorizon(h)}`))}
+        </label>`;
+      }).join('') +
+      `<span class="settings__hint">${esc(t('settings.hint'))}</span>`;
+  }
+
+  /**
+   * Статичная разметка index.html: подписи кнопок, подсказки, подвал, заголовок вкладки.
+   * Элементы помечены data-i18n / data-i18n-title и переводятся здесь, а не в HTML.
+   */
+  function renderStatic() {
+    document.documentElement.lang = I18N.lang;
+    document.title = t('app.title');
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) meta.content = t('app.description');
+    $$('[data-i18n]').forEach(el => { el.innerHTML = t(el.dataset.i18n); });
+    $$('[data-i18n-title]').forEach(el => {
+      el.title = t(el.dataset.i18nTitle);
+      if (el.hasAttribute('aria-label')) el.setAttribute('aria-label', t(el.dataset.i18nTitle));
+    });
+    const langBtn = $('#btnLang');
+    langBtn.textContent = t('lang.switch');
+    langBtn.title = t('lang.switchTitle');
+    const settingsBtn = $('#btnSettings');
+    settingsBtn.title = t('settings.title');
+    settingsBtn.setAttribute('aria-pressed', String(view.settingsOpen));
+  }
+
+  /** Состояние автосохранения в файл. Где API нет — кнопки нет вовсе. */
+  const FILE_LABELS = () => ({
+    off:                 { text: t('file.off'),   title: t('file.offTitle') },
+    'needs-permission':  { text: t('file.perm'),  title: t('file.permTitle') },
+    error:               { text: t('file.error'), title: t('file.errorTitle') },
+  });
+  let lastFileState = { supported: false, status: 'off', fileName: '' };
+
+  function renderFileSync(fileState) {
+    lastFileState = fileState;                 // при смене языка кнопку перерисуем тем же состоянием
+    const btn = $('#btnFile');
+    btn.hidden = !fileState.supported;
+    if (!fileState.supported) return;
+
+    if (fileState.status === 'on') {
+      btn.textContent = fileState.fileName || t('file.fallback');
+      btn.title = t('file.onTitle', fileState.fileName);
+      btn.classList.add('btn--on');
+    } else {
+      const labels = FILE_LABELS();
+      const label = labels[fileState.status] || labels.off;
+      btn.textContent = label.text;
+      btn.title = label.title;
+      btn.classList.remove('btn--on');
+    }
   }
 
   /** Логотип — вход в обзор, он же счётчик неразобранных входящих. */
@@ -553,8 +617,8 @@ const UI = (() => {
     const waiting = Store.orderedTasks(Store.INBOX_KEY).filter(Insights.isOpen).length;
     const brand = $('#btnBrand');
     brand.classList.toggle('brand--active', isOverview());
-    brand.title = waiting ? `Обзор · во входящих: ${waiting}` : 'Обзор';
-    brand.innerHTML = 'life&nbsp;progress' +
+    brand.title = waiting ? t('overview.inbox', waiting) : t('overview');
+    brand.innerHTML = t('app.brand') +
       (waiting ? `<span class="brand__badge">${waiting}</span>` : '');
   }
 
@@ -570,7 +634,7 @@ const UI = (() => {
     }
     if (view.category && !list.includes(view.category)) view.category = '';   // метку стёрли вместе с задачами
     box.hidden = false;
-    box.innerHTML = [{ id: '', label: 'все' }, ...list.map(c => ({ id: c, label: `#${c}` }))]
+    box.innerHTML = [{ id: '', label: t('filters.all') }, ...list.map(c => ({ id: c, label: `#${c}` }))]
       .map(c => `<button class="chip" data-filter="${esc(c.id)}"
                          aria-pressed="${c.id === view.category}">${esc(c.label)}</button>`)
       .join('');
@@ -581,13 +645,13 @@ const UI = (() => {
     let title, sub;
     if (isOverview()) {
       const today = Store.today();
-      title = 'Обзор';
+      title = t('overview');
       sub = `${Store.weekdayName(today)}, ${Store.formatDate(today, true)} · ` +
             `${Store.periodLabel(Store.periodKey('week', today))}`;
     } else if (isDays) {
       const span = Store.spanOf('day');
       title = Store.formatRange(view.cursor, Store.addDays(view.cursor, span - 1), true);
-      sub = `${Store.spanLabel('day', span)} вперёд`;
+      sub = t('nav.ahead', Store.spanLabel('day', span));
     } else {
       const keys = spanKeys(horizonOf(tab()));
       const first = keys[0];
@@ -622,8 +686,11 @@ const UI = (() => {
   }
 
   function render() {
+    renderStatic();
     renderTabs();
+    renderSettings();
     renderBrand();
+    renderFileSync(lastFileState);
     renderPeriodBar();
     renderFilters();
     $('#content').innerHTML = VIEWS[tab()]();
@@ -666,6 +733,23 @@ const UI = (() => {
   /** Ключ периода, куда добавлять задачу после отправки формы. */
   const focusAfterRender = key => { pendingFocus = key; };
 
+  function toggleSettings() {
+    view.settingsOpen = !view.settingsOpen;
+    render();
+  }
+
+  /** Скрыть или показать горизонт. Если спрятали вкладку, на которой стоим, — уходим на обзор. */
+  function setVisible(horizon, value) {
+    if (!Store.setVisible(horizon, value)) { render(); return; }
+    if (!value && horizonOf(tab()) === horizon) { goTo(OVERVIEW); return; }
+    render();
+  }
+
+  /** Смена языка: словарь, настройка и полная перерисовка. */
+  function setLang(next) {
+    if (Store.setLang(next)) render();
+  }
+
   /** Горизонт открытой вкладки — по нему выбирается ширина окна. */
   const currentHorizon = () => horizonOf(tab());
 
@@ -689,6 +773,7 @@ const UI = (() => {
 
   return {
     view, render, goTo, shift, jumpToNow, setCategory, captureToInbox, toggleSteps, currentHorizon,
-    updateProgress, autoGrow, focusAfterRender, currentKey, esc, TABS,
+    renderFileSync, setLang, toggleSettings, setVisible,
+    updateProgress, autoGrow, focusAfterRender, currentKey, esc, TAB_IDS,
   };
 })();

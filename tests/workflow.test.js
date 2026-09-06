@@ -35,7 +35,7 @@ test('отмена и выполнение гасят друг друга', () =
 
 test('отменённые не считаются выполненными даже в битых данных', () => {
   const { Store } = loadApp({
-    'life-progress:v1': JSON.stringify({
+    'doozy:v1': JSON.stringify({
       periods: { [KEY]: { tasks: [{ text: 'И то и другое', done: true, cancelled: true }] } },
     }),
   });
@@ -133,7 +133,8 @@ test('перенос уносит задачу в следующий перио�
   assert.deepEqual(texts(Store.tasks('2026-08-30')), ['Позвонить в сервис']);
   assert.equal(moved.task.category, 'работа', 'метка едет с задачей');
   assert.equal(moved.task.carryCount, 1);
-  assert.deepEqual(moved.task.carriedFrom, { key: KEY, label: '29 августа' });
+  assert.deepEqual(moved.task.carriedFrom, { key: KEY }, 'подпись не хранится — считается на текущем языке');
+  assert.equal(Store.periodLabel(moved.task.carriedFrom.key), 'August 29');
 });
 
 test('повторные переносы копятся в счётчике', () => {
@@ -146,7 +147,7 @@ test('повторные переносы копятся в счётчике', (
 
   assert.equal(third.key, '2026-09-01');
   assert.equal(third.task.carryCount, 3);
-  assert.equal(third.task.carriedFrom.label, '31 августа', 'помнит последний переезд');
+  assert.equal(third.task.carriedFrom.key, '2026-08-31', 'помнит последний переезд');
 });
 
 test('перенос снимает отмену, но выполненную задачу не трогает', () => {
@@ -167,5 +168,5 @@ test('перенос недели ведёт в неделю, а не в тот 
   const moved = Store.carryTask('2026-W35', task.id);
 
   assert.equal(moved.key, '2026-W36');
-  assert.equal(moved.task.carriedFrom.label, 'Неделя 35');
+  assert.equal(moved.task.carriedFrom.key, '2026-W35');
 });
