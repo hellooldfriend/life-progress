@@ -28,6 +28,16 @@ npm run serve            # python3 -m http.server 4174; есть .claude/launch.
 - Диалог выбора файла (`showSaveFilePicker`) из автоматизации не открывать — не закроется.
 - После проверки чистить `localStorage` и `indexedDB('doozy')`, гасить сервер.
 
+## Деплой
+
+Сайт живёт на GitHub Pages: https://hellooldfriend.github.io/life-progress/ (репозиторий
+`hellooldfriend/life-progress`, папка локально уже `doozy`). Pages кэширует файлы на 10 минут,
+HTML и JS независимо — поэтому все `<script src>` и `<link>` в `index.html` несут `?v=<дата>`:
+**менять при каждом деплое**, иначе Safari может отдать новый HTML со старым `app.js`, и приложение
+молча не запустится. На такой случай в `<head>` стоит ловушка `error` → `#bootError`: ошибка
+старта печатается на странице, а не остаётся пустым экраном. Проверить сайт движком Safari
+без окна можно WKWebView-скриптом (см. историю сессии от 6 сентября 2026: `webkit-probe.swift`).
+
 ## Архитектура
 
 | файл | роль |

@@ -119,6 +119,14 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
   vertical-align: 1px; background: var(--accent); border-radius: 50%;
 }
 
+/* Сообщение об ошибке старта: единственное, что видно, если скрипты не поднялись */
+.boot-error {
+  margin: 20px 0 0; padding: 12px 14px; font-size: 14px; line-height: 1.5;
+  color: var(--text); background: rgba(239, 68, 68, .12);
+  border: 1px solid rgba(239, 68, 68, .4); border-radius: var(--r-sm);
+  white-space: pre-wrap; word-break: break-word;
+}
+
 /* ─────────────── 4. Полоса периода ─────────────── */
 .periodbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 22px 0 18px; }
 .nav-btn {

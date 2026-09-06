@@ -6,7 +6,19 @@
   <meta name="color-scheme" content="dark" />
   <title>Doozy — planning from a day to a year</title>
   <meta name="description" content="Personal and work planning across horizons: day, week, month, quarter, year. Tasks and reviews. Local, no backend." />
-  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/styles.css?v=2026-09-06" />
+  <script>
+    // Ловушка ошибок старта. Стоит до всех скриптов и не зависит от них:
+    // если что-то упадёт при загрузке, страница скажет об этом, а не останется пустой.
+    window.addEventListener('error', function (e) {
+      var box = document.getElementById('bootError');
+      if (!box) return;
+      var where = (e.filename || '').split('/').pop();
+      box.hidden = false;
+      box.textContent = 'Doozy failed to start / Doozy не запустился: ' + (e.message || e.error || 'unknown error') +
+        (where ? ' — ' + where + ':' + e.lineno + ':' + e.colno : '');
+    });
+  </script>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%238b5cf6'/><path d='M8 16.5l5 5 11-11' stroke='white' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>" />
 </head>
 <body>
@@ -27,6 +39,9 @@
 </header>
 
 <div class="wrap">
+  <noscript><p class="boot-error">Doozy needs JavaScript — it is turned off in this browser.<br />
+    Doozy не работает без JavaScript — в этом браузере он выключен.</p></noscript>
+  <p class="boot-error" id="bootError" hidden></p>
   <div class="periodbar">
     <button class="nav-btn" id="btnPrev" data-i18n-title="nav.prev" aria-label="Previous period"></button>
     <button class="nav-btn" id="btnNext" data-i18n-title="nav.next" aria-label="Next period"></button>
@@ -43,11 +58,13 @@
   <p class="foot" data-i18n="footer"></p>
 </div>
 
-<script src="js/i18n.js"></script>
-<script src="js/store.js"></script>
-<script src="js/insights.js"></script>
-<script src="js/filesync.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/app.js"></script>
+<!-- ?v= — версия сборки: менять при каждом деплое, иначе браузер может взять новый HTML
+     и старый JS из кэша (GitHub Pages кэширует на 10 минут) -->
+<script src="js/i18n.js?v=2026-09-06"></script>
+<script src="js/store.js?v=2026-09-06"></script>
+<script src="js/insights.js?v=2026-09-06"></script>
+<script src="js/filesync.js?v=2026-09-06"></script>
+<script src="js/ui.js?v=2026-09-06"></script>
+<script src="js/app.js?v=2026-09-06"></script>
 </body>
 </html>
