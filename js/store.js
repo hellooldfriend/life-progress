@@ -56,7 +56,13 @@ const Store = (() => {
   /** Ключи прежних имён приложения — читаем, чтобы данные пережили переименование. */
   const LEGACY_KEYS = ['life-progress:v1', 'life-sprints/v1'];
 
-  const HORIZONS = ['day', 'week', 'month', 'quarter', 'year'];
+  const HORIZONS = ['day', 'week', 'month', 'quarter', 'year', 'life'];
+  /**
+   * Ключ «жизни»: цели без срока — «заработать 30 млн», «выучить язык». За год такое не сделать,
+   * а входящие для этого не годятся: там сырьё, которое надо разобрать, здесь — решённое.
+   * Границ у ключа нет, как у входящих, поэтому он не бывает просрочен и не просит итогов.
+   */
+  const LIFE_KEY = 'life';
 
   /**
    * Сколько периодов горизонта показывать рядом. Один — привычный вид
@@ -69,10 +75,11 @@ const Store = (() => {
     month:   [1, 2, 3],
     quarter: [1, 2, 4],
     year:    [1, 2, 3],
+    life:    [1],                 // соседних «жизней» нет
   };
-  const DEFAULT_SPANS = { day: 14, week: 1, month: 1, quarter: 1, year: 1 };
+  const DEFAULT_SPANS = { day: 14, week: 1, month: 1, quarter: 1, year: 1, life: 1 };
   /** Какие горизонты показывать. Кто планирует неделями, кварталы ему только мешают. */
-  const DEFAULT_VISIBLE = { day: true, week: true, month: true, quarter: true, year: true };
+  const DEFAULT_VISIBLE = { day: true, week: true, month: true, quarter: true, year: true, life: true };
   /** Ключ входящих: «когда-нибудь, но записать надо сейчас». */
   const INBOX_KEY = 'inbox';
   /** Горизонты, у которых есть блок «Итоги»: ретроспектива нужна от недели и выше. */
@@ -226,6 +233,7 @@ const Store = (() => {
 
   const KEY_SHAPES = [
     ['inbox',   /^inbox$/],
+    ['life',    /^life$/],
     ['day',     /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/],
     ['week',    /^\d{4}-W(0[1-9]|[1-4]\d|5[0-3])$/],
     ['quarter', /^\d{4}-Q[1-4]$/],
@@ -253,6 +261,7 @@ const Store = (() => {
   function periodKey(horizon, date) {
     const iso = typeof date === 'string' ? date : toISODate(date);
     switch (horizon) {
+      case 'life':  return LIFE_KEY;
       case 'day':   return iso;
       case 'week': {
         const { year, week } = isoWeek(iso);
@@ -361,6 +370,7 @@ const Store = (() => {
     const start = keyStart(key);
     switch (keyHorizon(key)) {
       case 'inbox':   return t('label.inbox');
+      case 'life':    return t('label.life');
       case 'day':     return t('label.day', parseDate(key).getDate(), parseDate(key).getMonth());
       case 'week':    return t('label.week', Number(String(key).slice(6)));
       case 'month':   return t('label.month', parseDate(start).getMonth(), start.slice(0, 4));
@@ -376,6 +386,7 @@ const Store = (() => {
     const start = keyStart(key);
     switch (horizon) {
       case 'inbox':   return t('sub.inbox');
+      case 'life':    return t('sub.life');
       case 'day':     return weekdayName(key);
       case 'week':    return formatRange(start, keyEnd(key), true);
       case 'month':   return t('sub.month', quarterOf(start));
@@ -700,7 +711,7 @@ const Store = (() => {
    * @returns {Array<{key: string, task: object}>}
    */
   function goalCandidates(excludeId) {
-    const order = ['year', 'quarter', 'month', 'week', 'day', 'inbox'];
+    const order = ['life', 'year', 'quarter', 'month', 'week', 'day', 'inbox'];
     const banned = new Set([excludeId, ...descendantIds(excludeId)]);
     const out = [];
     Object.keys(state.periods).forEach(key => {
@@ -899,7 +910,7 @@ const Store = (() => {
   }
 
   return {
-    HORIZONS, RETRO_HORIZONS, SPAN_OPTIONS, INBOX_KEY,
+    HORIZONS, RETRO_HORIZONS, SPAN_OPTIONS, INBOX_KEY, LIFE_KEY,
     // утилиты дат
     uid, toISODate, parseDate, addDays, addMonths, diffDays, today, dateRange,
     formatDate, formatRange, monthName, weekday, weekdayName, isWeekend, weekStart, quarterOf, isoWeek,

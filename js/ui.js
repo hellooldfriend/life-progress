@@ -14,7 +14,7 @@ const UI = (() => {
    * остальные совпадают с горизонтами. Обзора здесь нет: на него уводит
    * логотип, и в ряду вкладок он был бы вторым входом в то же место.
    */
-  const TAB_IDS = ['days', 'week', 'month', 'quarter', 'year'];
+  const TAB_IDS = ['days', 'week', 'month', 'quarter', 'year', 'life'];
   const t = (...args) => I18N.t(...args);
   const OVERVIEW = 'overview';
 
@@ -163,7 +163,7 @@ const UI = (() => {
     ].join('') : [
       canUp ? actionHTML('up', '↑', I18N.t('act.up')) : '',
       canDown ? actionHTML('down', '↓', I18N.t('act.down')) : '',
-      !t.done && !t.cancelled
+      !t.done && !t.cancelled && Store.nextKey(key)      // у «жизни» следующего периода нет
         ? actionHTML('carry', '→', I18N.t('act.moveTo', Store.periodLabel(Store.nextKey(key)))) : '',
       !t.done && !t.cancelled ? actionHTML('star', '★', I18N.t('act.star'), 'task__icon--star') : '',
       !t.cancelled ? actionHTML('steps', '⊞', I18N.t('act.steps')) : '',
@@ -532,8 +532,14 @@ const UI = (() => {
       attentionHTML();
   }
 
+  /** Цели без срока: одна карточка, без разбивки — делить жизнь на подпериоды нечего. */
+  function renderLife() {
+    return focusCardHTML(Store.LIFE_KEY, t('summary.life'), t('add.life'));
+  }
+
   const VIEWS = {
     overview: renderOverview,
+    life: renderLife,
     days: renderDays, week: renderWeek, month: renderMonth, quarter: renderQuarter, year: renderYear,
   };
 
@@ -667,13 +673,14 @@ const UI = (() => {
     $('#btnPrev').innerHTML = ICONS.left;
     $('#btnNext').innerHTML = ICONS.right;
 
-    // Обзор всегда про «сейчас» — стрелки и «Сейчас» на нём бессмысленны
-    ['#btnPrev', '#btnNext', '#btnNow'].forEach(sel => { $(sel).hidden = isOverview(); });
+    // Обзор — всегда про «сейчас», у «жизни» нет соседних периодов: стрелки и окно там бессмысленны
+    const timeless = isOverview() || !Store.nextKey(currentKey());
+    ['#btnPrev', '#btnNext', '#btnNow'].forEach(sel => { $(sel).hidden = timeless; });
 
     // Ширина окна — своя у каждого горизонта: «3 месяца» рядом, «4 недели» рядом
     const select = $('#spanSelect');
-    select.hidden = isOverview();
-    if (!isOverview()) {
+    select.hidden = timeless;
+    if (!timeless) {
       const horizon = horizonOf(tab());
       select.innerHTML = Store.SPAN_OPTIONS[horizon]
         .map(n => `<option value="${n}">${esc(Store.spanLabel(horizon, n))}</option>`).join('');
@@ -719,6 +726,7 @@ const UI = (() => {
   function shift(dir) {
     const current = tab();
     if (current === 'overview')     return;
+    if (current !== 'days' && !Store.nextKey(currentKey())) return;   // «жизнь» не листается
     if (current === 'days')         view.cursor = Store.addDays(view.cursor, dir * Store.spanOf('day'));
     else if (current === 'week')    view.cursor = Store.addDays(view.cursor, dir * 7);
     else if (current === 'month')   view.cursor = Store.addMonths(view.cursor, dir);

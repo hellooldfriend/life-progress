@@ -5,7 +5,7 @@ const { loadApp } = require('./helpers/load');
 
 test('по умолчанию видны все горизонты', () => {
   const { Store } = loadApp();
-  assert.deepEqual(Store.visibleHorizons(), ['day', 'week', 'month', 'quarter', 'year']);
+  assert.deepEqual(Store.visibleHorizons(), ['day', 'week', 'month', 'quarter', 'year', 'life']);
   assert.equal(Store.isVisible('quarter'), true);
 });
 
@@ -13,7 +13,7 @@ test('горизонт прячется и возвращается', () => {
   const { Store } = loadApp();
   assert.equal(Store.setVisible('quarter', false), true);
   assert.equal(Store.isVisible('quarter'), false);
-  assert.deepEqual(Store.visibleHorizons(), ['day', 'week', 'month', 'year']);
+  assert.deepEqual(Store.visibleHorizons(), ['day', 'week', 'month', 'year', 'life']);
   assert.equal(Store.setVisible('quarter', true), true);
   assert.equal(Store.isVisible('quarter'), true);
   assert.equal(Store.setVisible('decade', false), false, 'чужой горизонт не принимается');
@@ -21,7 +21,7 @@ test('горизонт прячется и возвращается', () => {
 
 test('последний видимый горизонт спрятать нельзя', () => {
   const { Store } = loadApp();
-  ['day', 'week', 'quarter', 'year'].forEach(h => Store.setVisible(h, false));
+  ['day', 'week', 'quarter', 'year', 'life'].forEach(h => Store.setVisible(h, false));
   assert.deepEqual(Store.visibleHorizons(), ['month']);
   assert.equal(Store.setVisible('month', false), false);
   assert.equal(Store.isVisible('month'), true, 'остался на месте');
@@ -47,7 +47,7 @@ test('видимость переживает перезапуск, а мусо�
   assert.equal(junk.Store.isVisible('week'), true);
 
   const none = loadApp({ 'doozy:v1': JSON.stringify({ periods: {}, settings: {
-    visible: { day: false, week: false, month: false, quarter: false, year: false } } }) });
-  assert.deepEqual(none.Store.visibleHorizons(), ['day', 'week', 'month', 'quarter', 'year'],
+    visible: { day: false, week: false, month: false, quarter: false, year: false, life: false } } }) });
+  assert.deepEqual(none.Store.visibleHorizons(), ['day', 'week', 'month', 'quarter', 'year', 'life'],
     'всё скрыто — это тупик, сбрасываем');
 });

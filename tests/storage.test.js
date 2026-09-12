@@ -21,7 +21,7 @@ test('состояние переживает перезапуск прилож�
   assert.deepEqual(Store.stats('2026-08-29'), { done: 1, active: 1, cancelled: 0, total: 1 });
   assert.equal(Store.summary('2026-08'), 'Ездили на дачу.');
   assert.equal(Store.get().settings.horizon, 'month');
-  assert.deepEqual(Store.get().settings.spans, { day: 30, week: 1, month: 3, quarter: 1, year: 1 });
+  assert.deepEqual(Store.get().settings.spans, { day: 30, week: 1, month: 3, quarter: 1, year: 1, life: 1 });
 });
 
 test('данные первой версии подхватываются со старого ключа', () => {
@@ -49,8 +49,8 @@ test('битые данные в localStorage не мешают приложен
   assert.deepEqual(Store.get().periods, {});
   assert.deepEqual(Store.get().settings, {
     horizon: 'overview', lang: 'en',
-    spans: { day: 14, week: 1, month: 1, quarter: 1, year: 1 },
-    visible: { day: true, week: true, month: true, quarter: true, year: true },
+    spans: { day: 14, week: 1, month: 1, quarter: 1, year: 1, life: 1 },
+    visible: { day: true, week: true, month: true, quarter: true, year: true, life: true },
   });
 });
 

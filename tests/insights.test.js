@@ -14,6 +14,7 @@ test('вертикальный срез даёт по одному ключу н
     { horizon: 'month',   key: '2026-08' },
     { horizon: 'quarter', key: '2026-Q3' },
     { horizon: 'year',    key: '2026' },
+    { horizon: 'life',    key: 'life' },
   ]);
 });
 
