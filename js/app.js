@@ -10,6 +10,8 @@
 
   const $ = sel => document.querySelector(sel);
   const content = $('#content');
+  const capture = $('#captureDialog');
+  const captureInput = $('#captureInput');
   const t = (...args) => I18N.t(...args);
 
   $('#btnSettings').addEventListener('click', () => UI.toggleSettings());
@@ -23,6 +25,7 @@
   /* ═════════════ Вкладки и навигация по времени ═════════════ */
 
   $('#btnBrand').addEventListener('click', () => UI.goTo('overview'));
+  $('#btnReviews').addEventListener('click', () => UI.goTo('reviews'));
 
   $('#tabs').addEventListener('click', e => {
     const btn = e.target.closest('[data-tab]');
@@ -40,13 +43,17 @@
 
   // Ширина окна: сколько периодов текущего горизонта показывать рядом
   $('#spanSelect').addEventListener('change', e => {
-    Store.setSpan(UI.currentHorizon(), Number(e.target.value));
-    UI.render();
+    UI.setSpan(Number(e.target.value));
   });
 
   /* ═════════════ Задачи ═════════════ */
 
   content.addEventListener('click', e => {
+    const taskLink = e.target.closest('[data-go-task]');
+    if (taskLink) { UI.goToTask(taskLink.dataset.goTask); return; }
+    const reviewLink = e.target.closest('[data-go-review]');
+    if (reviewLink) { UI.goToReview(reviewLink.dataset.goReview); return; }
+
     const jump = e.target.closest('[data-goto]');
     if (jump) {
       const [tabId, key] = jump.dataset.goto.split('|');
@@ -83,12 +90,15 @@
         li.classList.toggle('task--done', task.done);
         btn.setAttribute('aria-pressed', String(task.done));
         UI.updateProgress(key);
-        renderAfterAnimation();
+        renderAfterAnimation(btn, key, id);
         break;
       }
       case 'star': {
         const task = Store.toggleImportant(key, id);
-        if (task) {
+        if (task && key === Store.today()) {
+          UI.render();
+          UI.taskRow(key, id)?.querySelector('.task__more').focus({ preventScroll: true });
+        } else if (task) {
           li.classList.toggle('task--important', task.important);
           btn.textContent = t(task.important ? 'act.unstar' : 'act.star');
           actions.open = false;
@@ -115,11 +125,11 @@
         UI.render();
         break;
       case 'up':
-        Store.moveTask(key, id, -1);
+        Store.moveTask(key, id, -1, btn.dataset.neighbour);
         UI.render();
         break;
       case 'down':
-        Store.moveTask(key, id, 1);
+        Store.moveTask(key, id, 1, btn.dataset.neighbour);
         UI.render();
         break;
       case 'steps':
@@ -160,11 +170,17 @@
   /** Перерисовка после анимации галочки. Быстрые клики подряд не копят таймеры. */
   const ANIMATION_MS = 220;
   let animationTimer = null;
-  function renderAfterAnimation() {
+  function renderAfterAnimation(button, key, id) {
     clearTimeout(animationTimer);
     animationTimer = setTimeout(() => {
       // Правка задачи важнее: не выдёргиваем поле из-под рук
-      if (!content.querySelector('.task__edit')) UI.render();
+      if (content.querySelector('.task__edit')) return;
+      const restoreFocus = document.activeElement === button;
+      UI.render();
+      if (!restoreFocus) return;
+      const row = UI.taskRow(key, id);
+      const group = row?.closest('details[data-completed]:not([open])');
+      (group?.querySelector('summary') || row?.querySelector('.check'))?.focus({ preventScroll: true });
     }, ANIMATION_MS);
   }
 
@@ -199,6 +215,21 @@
   }
 
   /* ═════════════ Добавление задач ═════════════ */
+
+  function openCapture() {
+    if (!capture.open) capture.showModal();
+  }
+
+  $('#btnCapture').addEventListener('click', openCapture);
+  $('#btnCloseCapture').addEventListener('click', () => capture.close());
+  $('#captureForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const task = Store.addTask(Store.INBOX_KEY, captureInput.value);
+    if (!task) { captureInput.focus(); return; }
+    captureInput.value = '';
+    capture.close();
+    UI.refreshInbox(task);
+  });
 
   function submitAdd(input) {
     if (!input || !input.value.trim()) return;
@@ -304,6 +335,7 @@
   /* ═════════════ Горячие клавиши ═════════════ */
 
   document.addEventListener('keydown', e => {
+    if (capture.open || e.isComposing) return;
     if (e.key === 'Escape') {
       const actions = content.querySelector('.task__actions[open]');
       if (actions) {
@@ -319,7 +351,7 @@
     if (e.key === 'ArrowLeft')       { e.preventDefault(); UI.shift(-1); }
     else if (e.key === 'ArrowRight') { e.preventDefault(); UI.shift(1); }
     else if (e.key === 't' || e.key === 'е') { e.preventDefault(); UI.jumpToNow(); }
-    else if (e.key === 'i' || e.key === 'ш') { e.preventDefault(); UI.captureToInbox(); }
+    else if (e.key === 'i' || e.key === 'ш') { e.preventDefault(); openCapture(); }
   });
 
   /* ═════════════ Старт ═════════════ */

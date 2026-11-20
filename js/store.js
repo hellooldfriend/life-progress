@@ -809,7 +809,7 @@ const Store = (() => {
    * @param {number} dir -1 вверх, +1 вниз
    * @returns {boolean} двинулась ли задача
    */
-  function moveTask(key, id, dir) {
+  function moveTask(key, id, dir, neighbourId) {
     const p = period(key);
     if (!p) return false;
     const ordered = orderedTasks(key);
@@ -817,8 +817,9 @@ const Store = (() => {
     if (index === -1) return false;
 
     const task = ordered[index];
-    const neighbour = ordered[index + dir];
-    if (!neighbour || rank(neighbour) !== rank(task)) return false;
+    // Фильтр и фокус дня могут менять соседей на экране, но не порядок остальных задач.
+    const neighbour = neighbourId ? ordered.find(t => t.id === neighbourId) : ordered[index + dir];
+    if (!neighbour || neighbour === task || rank(neighbour) !== rank(task)) return false;
 
     const from = p.tasks.indexOf(task);
     const to = p.tasks.indexOf(neighbour);

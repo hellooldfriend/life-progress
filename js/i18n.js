@@ -32,7 +32,7 @@ const I18N = (() => {
     'nav.ahead': label => `${label} ahead`,
     'export': 'Export', 'export.title': 'Download all data as JSON',
     'import': 'Import', 'import.title': 'Load data from JSON',
-    'footer': 'Select a task to edit it. Add a label with #work. Use ← → to change periods, t to jump to today, and i to open the inbox.',
+    'footer': 'Select a task to edit it. Add a label with #work. Use ← → to change periods, t to jump to today, and i to add to the inbox.',
 
     /* ── даты ── */
     'months.short': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
@@ -64,6 +64,7 @@ const I18N = (() => {
 
     /* ── задачи ── */
     'task.done': 'Done', 'task.edit': 'Edit', 'task.add': 'Add', 'task.actions': 'Task actions',
+    'task.completed': n => `Completed · ${n}`,
     'act.moveTo': period => `Move to: ${period}`,
     'act.cancel': 'Cancel — not going to do it', 'act.restore': 'Bring back to work', 'act.delete': 'Delete',
     'act.up': 'Move up', 'act.down': 'Move down', 'act.star': 'Mark as important', 'act.unstar': 'Remove importance', 'act.steps': 'Steps and goal',
@@ -103,6 +104,10 @@ const I18N = (() => {
     /* ── цели и шаги ── */
     'steps.placeholder': 'new step…', 'steps.into': period => `Step into: ${period}`,
     'steps.parent': 'part of goal', 'steps.none': '— on its own',
+    'steps.next': 'Next step',
+    'reviews.title': 'Review history', 'reviews.empty': 'Your week, month, quarter and year reviews will appear here.',
+    'capture.title': 'Add to inbox', 'capture.shortcut': 'Add to inbox (i)',
+    'capture.field': 'Task or idea', 'capture.cancel': 'Close',
 
     /* ── обзор ── */
     'section.inbox': 'Inbox', 'inbox.placeholder': 'Add to inbox…',
@@ -149,7 +154,7 @@ const I18N = (() => {
     'nav.ahead': label => `${label} вперёд`,
     'export': 'Экспорт', 'export.title': 'Скачать все данные в JSON',
     'import': 'Импорт', 'import.title': 'Загрузить данные из JSON',
-    'footer': 'Нажмите на задачу, чтобы изменить её. Метку можно добавить в тексте: #работа. Клавиши ← → переключают периоды, t возвращает к текущему, i открывает входящие.',
+    'footer': 'Нажмите на задачу, чтобы изменить её. Метку можно добавить в тексте: #работа. Клавиши ← → переключают периоды, t возвращает к текущему, i записывает во входящие.',
 
     'months.short': ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'],
     'months.long': ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'],
@@ -182,6 +187,7 @@ const I18N = (() => {
     'ordinal': (n, horizon) => `${n}-${horizon === 'week' ? 'я' : 'й'}`,
 
     'task.done': 'Выполнено', 'task.edit': 'Изменить', 'task.add': 'Добавить', 'task.actions': 'Действия с задачей',
+    'task.completed': n => `Выполнено · ${n}`,
     'act.moveTo': period => `Перенести: ${period}`,
     'act.cancel': 'Отменить — не буду делать', 'act.restore': 'Вернуть в работу', 'act.delete': 'Удалить',
     'act.up': 'Выше', 'act.down': 'Ниже', 'act.star': 'Отметить важным', 'act.unstar': 'Снять важность', 'act.steps': 'Шаги и цель',
@@ -219,6 +225,10 @@ const I18N = (() => {
 
     'steps.placeholder': 'новый шаг…', 'steps.into': period => `Шаг в период: ${period}`,
     'steps.parent': 'часть цели', 'steps.none': '— сама по себе',
+    'steps.next': 'Следующий шаг',
+    'reviews.title': 'Лента итогов', 'reviews.empty': 'Здесь появятся записанные итоги недель, месяцев, кварталов и лет.',
+    'capture.title': 'Записать во входящие', 'capture.shortcut': 'Записать во входящие (i)',
+    'capture.field': 'Задача или идея', 'capture.cancel': 'Закрыть',
 
     'section.inbox': 'Входящие', 'inbox.placeholder': 'Записать во входящие…',
     'inbox.empty': 'пусто — всё разобрано', 'inbox.capture': 'Записать',

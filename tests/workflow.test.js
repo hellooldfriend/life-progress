@@ -90,6 +90,15 @@ test('moveTask упирается в границы списка', () => {
   assert.deepEqual(texts(Store.orderedTasks(KEY)), ['Раз', 'Два', 'Три']);
 });
 
+test('перестановка берёт указанного соседа и сохраняет места остальных задач', () => {
+  const { Store } = loadApp();
+  const [first, , last, done] = seedTasks(Store, KEY, ['Первая', 'Между', 'Последняя', { text: 'Закрытая', done: true }]);
+
+  assert.equal(Store.moveTask(KEY, last.id, -1, first.id), true);
+  assert.deepEqual(texts(Store.orderedTasks(KEY)), ['Последняя', 'Между', 'Первая', 'Закрытая']);
+  assert.equal(Store.moveTask(KEY, last.id, 1, done.id), false);
+});
+
 test('задача не ныряет под выполненные — там своя группа', () => {
   const { Store } = loadApp();
   const [first, second] = seedTasks(Store, KEY, ['Раз', 'Два', 'Три']);

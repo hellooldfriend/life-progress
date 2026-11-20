@@ -17,16 +17,18 @@ const UI = (() => {
   const TAB_IDS = ['days', 'week', 'month', 'quarter', 'year', 'life'];
   const t = (...args) => I18N.t(...args);
   const OVERVIEW = 'overview';
+  const REVIEWS = 'reviews';
 
   /**
    * Локальное состояние интерфейса. Курсор не сохраняется — приложение всегда
    * открывается на сегодня. Фильтр тоже: после перезагрузки спрятанные задачи
    * выглядели бы как пропавшие.
    */
-  const view = { cursor: Store.today(), category: '', settingsOpen: false };
+  const view = { cursor: Store.today(), category: '', settingsOpen: false, singleReview: false };
 
   /** Задачи с раскрытой панелью шагов. Локально: раскрытие — жест, а не настройка. */
   const expanded = new Set();
+  const completedOpen = new Set();
 
   /** Ключ периода, чьё поле ввода надо вернуть в фокус после перерисовки. */
   let pendingFocus = null;
@@ -129,8 +131,8 @@ const UI = (() => {
   }
 
   /** Кнопка действия над задачей. */
-  const actionHTML = (act, label) =>
-    `<button type="button" class="task__action" data-act="${act}">${esc(label)}</button>`;
+  const actionHTML = (act, label, neighbour) =>
+    `<button type="button" class="task__action" data-act="${act}"${neighbour ? ` data-neighbour="${esc(neighbour.id)}"` : ''}>${esc(label)}</button>`;
 
   const actionsHTML = actions => `<details class="task__actions">
     <summary class="task__more" aria-label="${esc(t('task.actions'))}" title="${esc(t('task.actions'))}">${ICONS.more}</summary>
@@ -142,12 +144,12 @@ const UI = (() => {
    * незачем переносить, а отменённую — помечать важной. Вызывающий может
    * задать свой набор через opts.actions — так делают входящие.
    */
-  function taskHTML(key, t, { canUp, canDown, source, actions: customActions } = {}) {
+  function taskHTML(key, t, { up, down, source, actions: customActions } = {}) {
     const cls = [
       'task',
       t.done && 'task--done',
       t.cancelled && 'task--cancelled',
-      t.important && !t.cancelled && 'task--important',
+      t.important && Insights.isOpen(t) && 'task--important',
     ].filter(Boolean).join(' ');
 
     const tags = [
@@ -167,8 +169,8 @@ const UI = (() => {
       actionHTML('cancel', I18N.t('act.cancel')),
       actionHTML('delete', I18N.t('act.delete')),
     ].join('') : [
-      canUp ? actionHTML('up', I18N.t('act.up')) : '',
-      canDown ? actionHTML('down', I18N.t('act.down')) : '',
+      up ? actionHTML('up', I18N.t('act.up'), up) : '',
+      down ? actionHTML('down', I18N.t('act.down'), down) : '',
       !t.done && !t.cancelled && Store.nextKey(key)      // у «жизни» следующего периода нет
         ? actionHTML('carry', I18N.t('act.moveTo', Store.periodLabel(Store.nextKey(key)))) : '',
       !t.done && !t.cancelled ? actionHTML('star', I18N.t(t.important ? 'act.unstar' : 'act.star')) : '',
@@ -179,10 +181,17 @@ const UI = (() => {
       actionHTML('delete', I18N.t('act.delete')),
     ].join('');
 
-    return `<li class="${cls}" data-key="${key}" data-id="${t.id}">
+    const step = !source && Store.keyHorizon(key) === 'year' && Insights.isOpen(t) ? Insights.nextStep(t.id) : null;
+    const next = step ? `<button type="button" class="task__next" data-go-task="${esc(step.task.id)}">
+      <span class="task__next-label">${esc(I18N.t('steps.next'))}</span>
+      <span>${esc(step.task.text)}</span>
+      <span class="task__next-period">${esc(Store.periodLabel(step.key))} →</span>
+    </button>` : '';
+    return `<li class="${cls}" data-key="${key}" data-id="${esc(t.id)}">
       <button class="check" data-act="toggle" aria-pressed="${t.done}" aria-label="${esc(I18N.t('task.done'))}">${ICONS.tick}</button>
       <span class="task__text" data-act="edit" title="${esc(I18N.t('task.edit'))}">${esc(t.text)}${tags}</span>
       ${actionsHTML(actions)}
+      ${next}
     </li>`;
   }
 
@@ -190,17 +199,35 @@ const UI = (() => {
    * Шаг цели в её списке. Живёт в своём периоде, поэтому data-key указывает туда:
    * галочка и удаление работают над настоящей задачей, а не над копией.
    */
-  function stepRowHTML(stepKey, t) {
+  function stepRowHTML(stepKey, t, showParent) {
     const cls = ['task', 'task--step', t.done && 'task--done', t.cancelled && 'task--cancelled']
       .filter(Boolean).join(' ');
-    return `<li class="${cls}" data-key="${stepKey}" data-id="${t.id}">
+    return `<li class="${cls}" data-key="${stepKey}" data-id="${esc(t.id)}">
       <button class="check" data-act="toggle" aria-pressed="${t.done}" aria-label="${esc(I18N.t('task.done'))}">${ICONS.tick}</button>
       <span class="task__text" data-act="edit" title="${esc(I18N.t('task.edit'))}">${esc(t.text)}
+        ${showParent ? parentTagHTML(t) : ''}
         <button class="tag tag--source" data-goto="${gotoAttr(stepKey)}"
                 title="${esc(I18N.t('tag.openPeriod'))}">${esc(Store.periodLabel(stepKey))}</button>
       </span>
       ${actionsHTML(actionHTML('unlink', I18N.t('act.unlink')))}
     </li>`;
+  }
+
+  const rowsHTML = rows => rows.length ? `<ul class="tasks">${rows.join('')}</ul>` : '';
+
+  function completedHTML(key, rows) {
+    if (!rows.length) return '';
+    return `<details class="completed" data-completed="${key}"${completedOpen.has(key) ? ' open' : ''}>
+      <summary class="completed__toggle">${ICONS.right} ${esc(t('task.completed', rows.length))}</summary>
+      ${rowsHTML(rows)}
+    </details>`;
+  }
+
+  function rememberCompleted(root) {
+    root.querySelectorAll('[data-completed]').forEach(el => {
+      if (el.open) completedOpen.add(el.dataset.completed);
+      else completedOpen.delete(el.dataset.completed);
+    });
   }
 
   /** Панель под задачей: добавить шаг и выбрать, частью какой цели она сама является. */
@@ -234,21 +261,31 @@ const UI = (() => {
    */
   function taskListHTML(key, placeholder, opts = {}) {
     const list = Store.orderedTasks(key, view.category);
-    // Шаг, лежащий в том же периоде, что и цель, показывается один раз — под целью
     const own = new Set(list.map(t => t.id));
-    const top = list.filter(t => !(t.parentId && own.has(t.parentId)));
-    // Двигать задачу можно только внутри своей группы: выше закрытых она всё равно не поднимется
-    const sameGroup = (a, b) => a && b && !!a.done === !!b.done && !!a.cancelled === !!b.cancelled;
+    const today = key === Store.today();
+    const pinned = task => today && task.important && Insights.isOpen(task);
+    // У цели показываем один уровень шагов. Более глубокие задачи остаются отдельными строками.
+    const roots = new Set(list.filter(task => pinned(task) || !own.has(task.parentId)).map(task => task.id));
+    const top = list.filter(task => roots.has(task.id) || !roots.has(task.parentId));
+    const topIds = new Set(top.map(task => task.id));
+    const sortGroup = task => task.cancelled ? 3 : task.done ? 2 : pinned(task) ? 0 : 1;
+    const peers = [[], [], [], []];
+    const groups = [[], [], [], []];
+    top.forEach(task => peers[sortGroup(task)].push(task));
 
-    const rows = top.map((t, i) => taskHTML(key, t, {
-      canUp: !opts.compact && sameGroup(t, top[i - 1]),
-      canDown: !opts.compact && sameGroup(t, top[i + 1]),
-    }) +
-      Store.subtasks(t.id).map(step => stepRowHTML(step.key, step.task)).join('') +
-      (expanded.has(t.id) ? stepPanelHTML(key, t) : '')).join('');
+    // Важные и обычные строки могут чередоваться в сохранённом порядке.
+    peers.forEach((tasks, group) => tasks.forEach((task, index) => {
+      const neighbours = opts.compact ? {} : { up: tasks[index - 1], down: tasks[index + 1] };
+      groups[group].push(taskHTML(key, task, neighbours) + (expanded.has(task.id) ? stepPanelHTML(key, task) : ''));
+      for (const step of Store.subtasks(task.id)) {
+        if (step.key === key && topIds.has(step.task.id)) continue;
+        const stepGroup = step.task.cancelled ? 3 : step.task.done ? 2 : 1;
+        groups[stepGroup].push(stepRowHTML(step.key, step.task, stepGroup !== group));
+      }
+    }));
 
     const body = top.length
-      ? `<ul class="tasks">${rows}</ul>`
+      ? rowsHTML(groups[0].concat(groups[1])) + completedHTML(key, groups[2]) + rowsHTML(groups[3])
       : `<div class="empty">${esc(view.category ? t('empty.filtered', view.category) : t('empty'))}</div>`;
 
     const base = placeholder || t('add.task');
@@ -338,8 +375,8 @@ const UI = (() => {
     .map(horizon => ({ horizon, label: t(`target.${horizon}`) }));
 
   /** Ключи периодов, которые показывает текущая вкладка. */
-  const spanKeys = horizon =>
-    Store.periodSpan(Store.periodKey(horizon, view.cursor), Store.spanOf(horizon));
+  const spanSize = horizon => view.singleReview ? 1 : Store.spanOf(horizon);
+  const spanKeys = horizon => Store.periodSpan(Store.periodKey(horizon, view.cursor), spanSize(horizon));
 
   /**
    * Несколько периодов рядом. Разбивки на подпериоды здесь нет — она превратила бы
@@ -353,7 +390,7 @@ const UI = (() => {
   }
 
   function renderWeek() {
-    if (Store.spanOf('week') > 1) return renderSpan('week');
+    if (spanSize('week') > 1) return renderSpan('week');
     const key = currentKey();
     const days = Store.children(key);
     return focusCardHTML(key, t('summary.week'), t('add.week')) +
@@ -364,7 +401,7 @@ const UI = (() => {
   }
 
   function renderMonth() {
-    if (Store.spanOf('month') > 1) return renderSpan('month');
+    if (spanSize('month') > 1) return renderSpan('month');
     const key = currentKey();
     // Итоги недели видны и отсюда: месяц читают как сумму недель
     const weeks = Store.children(key).map(w => childCardHTML(w, 'week', t('add.childWeek'), true));
@@ -376,7 +413,7 @@ const UI = (() => {
   }
 
   function renderQuarter() {
-    if (Store.spanOf('quarter') > 1) return renderSpan('quarter');
+    if (spanSize('quarter') > 1) return renderSpan('quarter');
     const key = currentKey();
     const months = Store.children(key).map(m => childCardHTML(m, 'month', t('add.childMonth'), true));
     return focusCardHTML(key, t('summary.quarter'), t('add.quarter')) +
@@ -387,7 +424,7 @@ const UI = (() => {
   }
 
   function renderYear() {
-    if (Store.spanOf('year') > 1) return renderSpan('year');
+    if (spanSize('year') > 1) return renderSpan('year');
     const key = currentKey();
     const quarters = Store.children(key).map(q => childCardHTML(q, 'quarter', t('add.childQuarter'), true));
 
@@ -473,7 +510,7 @@ const UI = (() => {
         </div><span class="badge">${retros.length}</span></header>
         <ul class="retros">${retros.map(r => `<li class="mini">
           <span>${esc(Store.periodLabel(r.key))} <span class="card__sub">${esc(Store.periodSub(r.key))}</span></span>
-          <button class="link" data-goto="${r.horizon}|${r.key}">${esc(t('attention.write'))}</button>
+          <button class="link" data-go-review="${r.key}">${esc(t('attention.write'))}</button>
         </li>`).join('')}</ul>
       </section>`);
     }
@@ -486,28 +523,37 @@ const UI = (() => {
    * Входящие. Строка разбирается на месте: назначить период, снять или удалить.
    * Двигать по списку нечего — во входящих нет порядка, есть только «разобрать».
    */
-  function inboxHTML() {
+  function inboxItemsHTML() {
     const key = Store.INBOX_KEY;
     const list = Store.orderedTasks(key, view.category);
     const today = Store.today();
     const targets = FILE_TARGETS();
 
-    const rows = list.map(task => {
+    const rows = [];
+    const done = [];
+    const cancelled = [];
+    list.forEach(task => {
       const actions = task.done || task.cancelled
         ? actionHTML('delete', t('act.delete'))
         : targets.map(({ horizon }) =>
             `<button type="button" class="task__action" data-act="file" data-to="${horizon}">
                ${esc(t('act.moveTo', Store.periodLabel(Store.periodKey(horizon, today))))}</button>`
           ).join('') + actionHTML('delete', t('act.delete'));
-      return taskHTML(key, task, { actions });
-    }).join('');
+      const group = task.done ? done : task.cancelled ? cancelled : rows;
+      group.push(taskHTML(key, task, { actions }));
+    });
 
+    return `<header class="card__head">
+        <h2 class="card__title">${esc(t('section.inbox'))}</h2>
+        ${list.length ? `<span class="badge">${list.length}</span>` : ''}
+      </header>
+      ${list.length ? rowsHTML(rows) + completedHTML(key, done) + rowsHTML(cancelled) : `<div class="empty">${esc(t('inbox.empty'))}</div>`}`;
+  }
+
+  function inboxHTML() {
+    const key = Store.INBOX_KEY;
     return `<section class="card card--inbox">
-        <header class="card__head">
-          <h2 class="card__title">${esc(t('section.inbox'))}</h2>
-          ${list.length ? `<span class="badge">${list.length}</span>` : ''}
-        </header>
-        ${list.length ? `<ul class="tasks">${rows}</ul>` : `<div class="empty">${esc(t('inbox.empty'))}</div>`}
+        <div id="inboxItems">${inboxItemsHTML()}</div>
         <form class="add" data-key="${key}">
           <input class="add__input" data-add="${key}" type="text" autocomplete="off"
                  placeholder="${esc(t('inbox.placeholder'))}" aria-label="${esc(t('inbox.placeholder'))}">
@@ -544,8 +590,22 @@ const UI = (() => {
     return focusCardHTML(Store.LIFE_KEY, t('summary.life'), t('add.life'));
   }
 
+  function renderReviews() {
+    const keys = Insights.recentReviews();
+    if (!keys.length) return `<div class="card empty">${esc(t('reviews.empty'))}</div>`;
+    return `<div class="grid grid--2">${keys.map(key => {
+      const dates = Store.periodSub(key);
+      return `<article class="card review">
+        <h2><button type="button" class="link card__title" data-go-review="${key}">${esc(Store.periodLabel(key))} →</button></h2>
+        ${dates ? `<p class="card__sub">${esc(dates)}</p>` : ''}
+        ${excerptHTML(key)}
+      </article>`;
+    }).join('')}</div>`;
+  }
+
   const VIEWS = {
     overview: renderOverview,
+    reviews: renderReviews,
     life: renderLife,
     days: renderDays, week: renderWeek, month: renderMonth, quarter: renderQuarter, year: renderYear,
   };
@@ -556,6 +616,7 @@ const UI = (() => {
     $('#tabs').innerHTML = TAB_IDS.filter(id => Store.isVisible(horizonOf(id))).map(id =>
       `<button class="tab" role="tab" data-tab="${id}" aria-selected="${id === tab()}">${esc(t(`tab.${id}`))}</button>`
     ).join('');
+    $('#btnReviews').setAttribute('aria-current', String(tab() === REVIEWS));
   }
 
   /** Полоса настроек: чекбокс на каждый горизонт. Последний оставшийся выключить нельзя. */
@@ -638,8 +699,9 @@ const UI = (() => {
 
   /** Строка меток. Пока меток нет — её нет вовсе, чтобы не занимать место зря. */
   function renderFilters() {
-    const list = Store.categories();
     const box = $('#filters');
+    if (tab() === REVIEWS) { box.hidden = true; return; }
+    const list = Store.categories();
     if (!list.length) {
       box.innerHTML = '';
       box.hidden = true;
@@ -657,7 +719,9 @@ const UI = (() => {
   function renderPeriodBar() {
     const isDays = tab() === 'days';
     let title, sub;
-    if (isOverview()) {
+    if (tab() === REVIEWS) {
+      title = t('reviews.title');
+    } else if (isOverview()) {
       const today = Store.today();
       title = t('overview');
       sub = `${Store.weekdayName(today)}, ${Store.formatDate(today, true)} · ` +
@@ -675,12 +739,12 @@ const UI = (() => {
         ? Store.formatRange(Store.keyStart(first), Store.keyEnd(last), true)
         : Store.periodSub(first);
     }
-    $('#periodTitle').innerHTML = `${esc(title)}<small>${esc(sub)}</small>`;
+    $('#periodTitle').innerHTML = `${esc(title)}${sub ? `<small>${esc(sub)}</small>` : ''}`;
     $('#btnPrev').innerHTML = ICONS.left;
     $('#btnNext').innerHTML = ICONS.right;
 
     // Обзор — всегда про «сейчас», у «жизни» нет соседних периодов: стрелки и окно там бессмысленны
-    const timeless = isOverview() || !Store.nextKey(currentKey());
+    const timeless = isOverview() || tab() === REVIEWS || !Store.nextKey(currentKey());
     ['#btnPrev', '#btnNext', '#btnNow'].forEach(sel => { $(sel).hidden = timeless; });
 
     // Ширина окна — своя у каждого горизонта: «3 месяца» рядом, «4 недели» рядом
@@ -690,7 +754,7 @@ const UI = (() => {
       const horizon = horizonOf(tab());
       select.innerHTML = Store.SPAN_OPTIONS[horizon]
         .map(n => `<option value="${n}">${esc(Store.spanLabel(horizon, n))}</option>`).join('');
-      select.value = String(Store.spanOf(horizon));
+      select.value = String(spanSize(horizon));
     }
   }
 
@@ -701,6 +765,8 @@ const UI = (() => {
   }
 
   function render() {
+    // Считываем раскрытие перед заменой DOM, даже если событие toggle ещё в очереди.
+    rememberCompleted($('#content'));
     renderStatic();
     renderTabs();
     renderSettings();
@@ -720,18 +786,52 @@ const UI = (() => {
 
   /* ═════════════ Навигация ═════════════ */
 
-  function goTo(tabId, iso) {
+  function goTo(tabId, iso, target) {
     if (!VIEWS[tabId]) return;
     if (iso) view.cursor = iso;
+    view.singleReview = Boolean(target?.summary);
     Store.setSetting('horizon', tabId);
     render();
+    if (target?.summary) {
+      const field = $(`[data-summary="${target.summary}"]`);
+      if (field) { reveal(field); return; }
+    }
+    if (target?.task) {
+      const { key, task } = target.task;
+      const row = taskRow(key, task.id);
+      if (row) {
+        const completed = row.closest('[data-completed]');
+        if (completed) completed.open = true;
+        reveal(row.querySelector('.check'));
+        return;
+      }
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  const taskRow = (key, id) => $$('.task').find(row => row.dataset.key === key && row.dataset.id === id);
+
+  function reveal(element) {
+    element.focus({ preventScroll: true });
+    element.scrollIntoView({ block: 'center' });
+  }
+
+  function goToTask(id) {
+    const item = Store.findTask(id);
+    if (!item || item.key === Store.INBOX_KEY) return;
+    if (view.category && view.category !== item.task.category) view.category = '';
+    goTo(tabForHorizon(Store.keyHorizon(item.key)), Store.keyStart(item.key), { task: item });
+  }
+
+  function goToReview(key) {
+    const horizon = Store.keyHorizon(key);
+    if (Store.RETRO_HORIZONS.includes(horizon)) goTo(horizon, Store.keyStart(key), { summary: key });
   }
 
   /** Шаг навигации равен тому, что видно на экране: агенда листается целыми экранами. */
   function shift(dir) {
     const current = tab();
-    if (current === 'overview')     return;
+    if (current === OVERVIEW || current === REVIEWS) return;
     if (current !== 'days' && !Store.nextKey(currentKey())) return;   // «жизнь» не листается
     if (current === 'days')         view.cursor = Store.addDays(view.cursor, dir * Store.spanOf('day'));
     else if (current === 'week')    view.cursor = Store.addDays(view.cursor, dir * 7);
@@ -766,8 +866,11 @@ const UI = (() => {
     if (Store.setLang(next)) render();
   }
 
-  /** Горизонт открытой вкладки — по нему выбирается ширина окна. */
-  const currentHorizon = () => horizonOf(tab());
+  function setSpan(size) {
+    view.singleReview = false;
+    Store.setSpan(horizonOf(tab()), size);
+    render();
+  }
 
   /** Раскрыть или свернуть панель шагов у задачи. */
   function toggleSteps(id) {
@@ -775,10 +878,15 @@ const UI = (() => {
     render();
   }
 
-  /** Записать во входящие с любой вкладки: уводит на обзор и ставит курсор в поле. */
-  function captureToInbox() {
-    focusAfterRender(Store.INBOX_KEY);
-    if (isOverview()) render(); else goTo(OVERVIEW);
+  /** Обновляем только входящие и метки, чтобы не стереть черновик в текущем виде. */
+  function refreshInbox(task) {
+    renderBrand();
+    if (task.category && !$$('#filters [data-filter]').some(chip => chip.dataset.filter === task.category)) renderFilters();
+    if (isOverview()) {
+      const items = $('#inboxItems');
+      rememberCompleted(items);
+      items.innerHTML = inboxItemsHTML();
+    }
   }
 
   /** Фильтр по метке: пустая строка — показывать всё. */
@@ -788,7 +896,7 @@ const UI = (() => {
   }
 
   return {
-    view, render, goTo, shift, jumpToNow, setCategory, captureToInbox, toggleSteps, currentHorizon,
+    view, render, goTo, goToTask, goToReview, taskRow, shift, jumpToNow, setCategory, refreshInbox, toggleSteps, setSpan,
     renderFileSync, setLang, toggleSettings, setVisible,
     updateProgress, autoGrow, focusAfterRender, currentKey, esc, TAB_IDS,
   };

@@ -28,6 +28,19 @@ const Insights = (() => {
     return Store.HORIZONS.map(horizon => ({ horizon, key: Store.periodKey(horizon, now) }));
   }
 
+  /** Ближайший открытый шаг по началу периода. Шаги без даты идут после запланированных. */
+  const nextStep = goalId => Store.subtasks(goalId).find(({ key, task }) =>
+    key !== Store.INBOX_KEY && isOpen(task)) || null;
+
+  /** История записанных итогов, от поздних дат окончания периода к ранним. */
+  function recentReviews() {
+    return periodKeys()
+      .filter(key => Store.RETRO_HORIZONS.includes(Store.keyHorizon(key)) && Store.summary(key).trim())
+      .map(key => ({ key, end: Store.keyEnd(key), start: Store.keyStart(key) }))
+      .sort((a, b) => b.end.localeCompare(a.end) || b.start.localeCompare(a.start))
+      .map(({ key }) => key);
+  }
+
   /* ═════════════ Разбор хвостов ═════════════ */
 
   /**
@@ -114,6 +127,6 @@ const Insights = (() => {
 
   return {
     STUCK_FROM, isOpen,
-    verticalKeys, overdueItems, stuckItems, pendingRetros, periodsWithin, hasActivity, attention,
+    verticalKeys, nextStep, recentReviews, overdueItems, stuckItems, pendingRetros, periodsWithin, hasActivity, attention,
   };
 })();

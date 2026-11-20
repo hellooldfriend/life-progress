@@ -155,3 +155,36 @@ test('на чистом состоянии дашборду показывать
   const { Insights } = loadApp();
   assert.deepEqual(Insights.attention(TODAY), { overdue: [], stuck: [], retros: [], total: 0 });
 });
+
+test('следующий шаг цели — первый открытый шаг по началу периода', () => {
+  const { Store, Insights } = loadApp();
+  const goal = Store.addTask('2026', 'Цель года');
+  const steps = [
+    ['2026-09-01', 'Будущий'], ['2026-W35', 'На этой неделе'],
+    ['2026-08-15', 'Снят'], ['2026-08-10', 'Сделан'],
+  ].map(([key, text]) => {
+    const task = Store.addTask(key, text);
+    Store.setParent(key, task.id, goal.id);
+    return { key, task };
+  });
+  Store.toggleCancelled(steps[2].key, steps[2].task.id);
+  Store.toggleTask(steps[3].key, steps[3].task.id);
+
+  assert.equal(Insights.nextStep(goal.id).task.id, steps[1].task.id);
+  Store.toggleTask(steps[1].key, steps[1].task.id);
+  assert.equal(Insights.nextStep(goal.id).task.id, steps[0].task.id);
+  Store.toggleTask(steps[0].key, steps[0].task.id);
+  assert.equal(Insights.nextStep(goal.id), null);
+});
+
+test('лента собирает записанные итоги и сортирует их по окончанию периода', () => {
+  const { Store, Insights } = loadApp();
+  Store.setSummary('2026-W35', 'Итоги недели');
+  Store.setSummary('2026-08', 'Итоги августа');
+  Store.setSummary('2026-09', '  ');
+  Store.setSummary('2026-Q3', 'Итоги квартала');
+  Store.setSummary('2025', 'Итоги прошлого года');
+  Store.setSummary('life', 'Заметки');
+
+  assert.deepEqual(Insights.recentReviews(), ['2026-Q3', '2026-08', '2026-W35', '2025']);
+});

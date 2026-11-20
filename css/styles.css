@@ -108,7 +108,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .tab:hover { color: var(--text); background: var(--surface-3); }
 .tab[aria-selected="true"] { color: var(--accent); background: var(--accent-soft); }
 
-.tools { justify-self: end; }
+.tools { display: flex; gap: 6px; justify-self: end; }
 .btn {
   min-height: 38px; padding: 7px 13px; font-size: 13px; font-weight: 550; color: var(--muted);
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-sm);
@@ -228,6 +228,8 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .chip--on { color: var(--text); background: var(--accent-soft); }
 .btn--icon { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; }
 .btn--icon[aria-expanded="true"] { color: var(--accent); border-color: var(--accent-dim); }
+.btn--icon[aria-current="true"], .btn--capture { color: var(--accent); background: var(--accent-soft); }
+.btn--primary, .btn--primary:hover { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
 #btnFile { max-width: 100%; overflow-wrap: anywhere; }
 
 /* Месяцы в годовом виде: строка с числом и, если есть, выдержка из итогов */
@@ -259,6 +261,17 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 
 /* ─────────────── 7. Задачи ─────────────── */
 .tasks { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+
+.completed { margin-block: 7px; }
+.completed__toggle {
+  display: flex; align-items: center; gap: 5px; min-height: 36px; padding: 4px 8px;
+  background: var(--accent-soft); color: var(--muted); border-radius: var(--r-sm);
+  font-size: 13px; font-weight: 550; cursor: pointer; list-style: none;
+}
+.completed__toggle::-webkit-details-marker { display: none; }
+.completed__toggle:hover { color: var(--text); }
+.completed[open] > .completed__toggle { margin-bottom: 4px; }
+.completed[open] > .completed__toggle .ico { transform: rotate(90deg); }
 
 .task {
   position: relative; display: grid; align-items: start;
@@ -322,6 +335,16 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .task--step { margin-left: 26px; font-size: 14px; }
 .task--step .task__text { color: var(--muted); }
 .task--step.task--done .task__text { color: var(--faint); }
+
+.task__next {
+  grid-column: 2 / -1; display: flex; align-items: baseline; flex-wrap: wrap;
+  gap: 2px 8px; justify-self: start; margin: 0 4px 8px 0; padding: 6px 9px;
+  background: var(--accent-soft); border-radius: 9px;
+  font-size: 13px; color: var(--text); text-align: left; overflow-wrap: anywhere;
+}
+.task__next:hover { background: var(--surface-3); }
+.task__next-label, .task__next-period { color: var(--accent); }
+.task__next-period { font-size: 12px; }
 
 /* Панель разбивки цели на шаги */
 .steps-panel {
@@ -408,6 +431,21 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
   margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
   font-size: 13px; color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere;
 }
+
+.review .card__title { color: var(--accent); }
+.review h2 { line-height: 1.3; }
+
+.capture {
+  width: min(460px, calc(100% - 28px)); max-height: calc(100% - 28px); padding: 22px;
+  background: var(--surface-2); color: var(--text);
+  border: 1px solid var(--border-strong); border-radius: var(--r-lg);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, .45);
+}
+.capture::backdrop { background: rgba(12, 10, 17, .72); }
+.capture h2 { font-size: 22px; margin-bottom: 12px; }
+.capture__field { display: block; margin-bottom: 4px; font-size: 13px; color: var(--muted); }
+.capture .add__input { background: var(--bg); border: 1px solid var(--border-strong); }
+.capture__actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
 
 /* ─────────────── 10. Мини-строки (месяцы в годовом виде) ─────────────── */
 .mini { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 6px 0; }
