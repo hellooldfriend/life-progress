@@ -55,6 +55,9 @@ const UI = (() => {
   const ICONS = {
     left:  '<svg class="ico" viewBox="0 0 24 24" width="18" height="18"><path d="M14 6l-6 6 6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     right: '<svg class="ico" viewBox="0 0 24 24" width="18" height="18"><path d="M10 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    more: '<svg class="ico" viewBox="0 0 20 20" width="20" height="20" fill="currentColor" aria-hidden="true"><circle cx="4" cy="10" r="1.4"/><circle cx="10" cy="10" r="1.4"/><circle cx="16" cy="10" r="1.4"/></svg>',
+    plus: '<svg class="ico" viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M5 10h10m-5-5v10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
+    brand: '<svg class="brand__mark" viewBox="0 0 32 32" width="32" height="32" aria-hidden="true"><path d="m9 16 5 5 9-10" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     tick:  '<svg class="check__tick" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.8"/></svg>',
   };
 
@@ -126,9 +129,13 @@ const UI = (() => {
   }
 
   /** Кнопка действия над задачей. */
-  const actionHTML = (act, glyph, title, extraClass) =>
-    `<button class="task__icon${extraClass ? ` ${extraClass}` : ''}" data-act="${act}"
-             title="${esc(title)}" aria-label="${esc(title)}">${glyph}</button>`;
+  const actionHTML = (act, label) =>
+    `<button type="button" class="task__action" data-act="${act}">${esc(label)}</button>`;
+
+  const actionsHTML = actions => `<details class="task__actions">
+    <summary class="task__more" aria-label="${esc(t('task.actions'))}" title="${esc(t('task.actions'))}">${ICONS.more}</summary>
+    <div class="task__action-list">${actionHTML('edit', t('task.edit'))}${actions}</div>
+  </details>`;
 
   /**
    * Строка задачи. Набор действий зависит от состояния: закрытую задачу
@@ -138,7 +145,6 @@ const UI = (() => {
   function taskHTML(key, t, { canUp, canDown, source, actions: customActions } = {}) {
     const cls = [
       'task',
-      key === Store.INBOX_KEY && 'task--inbox',
       t.done && 'task--done',
       t.cancelled && 'task--cancelled',
       t.important && !t.cancelled && 'task--important',
@@ -157,26 +163,26 @@ const UI = (() => {
 
     // На дашборде задачу не двигают по списку — её разбирают: сюда, снять или удалить
     const actions = customActions !== undefined ? customActions : source ? [
-      actionHTML('today', '⇥', I18N.t('act.moveTo', Store.periodLabel(source.target))),
-      actionHTML('cancel', '⊘', I18N.t('act.cancel')),
-      actionHTML('delete', '✕', I18N.t('act.delete')),
+      actionHTML('today', I18N.t('act.moveTo', Store.periodLabel(source.target))),
+      actionHTML('cancel', I18N.t('act.cancel')),
+      actionHTML('delete', I18N.t('act.delete')),
     ].join('') : [
-      canUp ? actionHTML('up', '↑', I18N.t('act.up')) : '',
-      canDown ? actionHTML('down', '↓', I18N.t('act.down')) : '',
+      canUp ? actionHTML('up', I18N.t('act.up')) : '',
+      canDown ? actionHTML('down', I18N.t('act.down')) : '',
       !t.done && !t.cancelled && Store.nextKey(key)      // у «жизни» следующего периода нет
-        ? actionHTML('carry', '→', I18N.t('act.moveTo', Store.periodLabel(Store.nextKey(key)))) : '',
-      !t.done && !t.cancelled ? actionHTML('star', '★', I18N.t('act.star'), 'task__icon--star') : '',
-      !t.cancelled ? actionHTML('steps', '⊞', I18N.t('act.steps')) : '',
+        ? actionHTML('carry', I18N.t('act.moveTo', Store.periodLabel(Store.nextKey(key)))) : '',
+      !t.done && !t.cancelled ? actionHTML('star', I18N.t(t.important ? 'act.unstar' : 'act.star')) : '',
+      !t.cancelled ? actionHTML('steps', I18N.t('act.steps')) : '',
       t.cancelled
-        ? actionHTML('cancel', '↺', I18N.t('act.restore'))
-        : (!t.done ? actionHTML('cancel', '⊘', I18N.t('act.cancel')) : ''),
-      actionHTML('delete', '✕', I18N.t('act.delete')),
+        ? actionHTML('cancel', I18N.t('act.restore'))
+        : (!t.done ? actionHTML('cancel', I18N.t('act.cancel')) : ''),
+      actionHTML('delete', I18N.t('act.delete')),
     ].join('');
 
     return `<li class="${cls}" data-key="${key}" data-id="${t.id}">
       <button class="check" data-act="toggle" aria-pressed="${t.done}" aria-label="${esc(I18N.t('task.done'))}">${ICONS.tick}</button>
       <span class="task__text" data-act="edit" title="${esc(I18N.t('task.edit'))}">${esc(t.text)}${tags}</span>
-      <span class="task__actions">${actions}</span>
+      ${actionsHTML(actions)}
     </li>`;
   }
 
@@ -193,9 +199,7 @@ const UI = (() => {
         <button class="tag tag--source" data-goto="${gotoAttr(stepKey)}"
                 title="${esc(I18N.t('tag.openPeriod'))}">${esc(Store.periodLabel(stepKey))}</button>
       </span>
-      <span class="task__actions">
-        ${actionHTML('unlink', '⤫', I18N.t('act.unlink'))}
-      </span>
+      ${actionsHTML(actionHTML('unlink', I18N.t('act.unlink')))}
     </li>`;
   }
 
@@ -252,8 +256,8 @@ const UI = (() => {
     return `${body}
       <form class="add" data-key="${key}">
         <input class="add__input" data-add="${key}" type="text" autocomplete="off"
-               placeholder="${esc(hint)}">
-        <button class="add__btn" type="submit" aria-label="${esc(t('task.add'))}">+</button>
+               placeholder="${esc(hint)}" aria-label="${esc(hint)}">
+        <button class="add__btn" type="submit" aria-label="${esc(t('task.add'))}">${ICONS.plus}</button>
       </form>`;
   }
 
@@ -436,7 +440,7 @@ const UI = (() => {
   function attentionHTML() {
     const { overdue, stuck, retros, total } = Insights.attention(Store.today());
     if (!total) {
-      return `<div class="section-label">${esc(t('section.attention'))}</div>` +
+      return `<h2 class="section-label">${esc(t('section.attention'))}</h2>` +
         `<section class="card"><div class="empty">${esc(t('attention.none'))}</div></section>`;
     }
 
@@ -474,7 +478,7 @@ const UI = (() => {
       </section>`);
     }
 
-    return `<div class="section-label">${esc(t('section.attention'))} · ${total}</div>
+    return `<h2 class="section-label">${esc(t('section.attention'))} · ${total}</h2>
       <div class="grid grid--2">${blocks.join('')}</div>`;
   }
 
@@ -490,21 +494,24 @@ const UI = (() => {
 
     const rows = list.map(task => {
       const actions = task.done || task.cancelled
-        ? actionHTML('delete', '✕', t('act.delete'))
-        : targets.map(({ horizon, label }) =>
-            `<button class="task__file" data-act="file" data-to="${horizon}"
-                     title="${esc(t('act.moveTo', Store.periodLabel(Store.periodKey(horizon, today))))}">${esc(label)}</button>`
-          ).join('') + actionHTML('delete', '✕', t('act.delete'));
+        ? actionHTML('delete', t('act.delete'))
+        : targets.map(({ horizon }) =>
+            `<button type="button" class="task__action" data-act="file" data-to="${horizon}">
+               ${esc(t('act.moveTo', Store.periodLabel(Store.periodKey(horizon, today))))}</button>`
+          ).join('') + actionHTML('delete', t('act.delete'));
       return taskHTML(key, task, { actions });
     }).join('');
 
-    return `<div class="section-label">${esc(t('section.inbox'))}${list.length ? ` · ${list.length}` : ''}</div>
-      <section class="card">
+    return `<section class="card card--inbox">
+        <header class="card__head">
+          <h2 class="card__title">${esc(t('section.inbox'))}</h2>
+          ${list.length ? `<span class="badge">${list.length}</span>` : ''}
+        </header>
         ${list.length ? `<ul class="tasks">${rows}</ul>` : `<div class="empty">${esc(t('inbox.empty'))}</div>`}
         <form class="add" data-key="${key}">
           <input class="add__input" data-add="${key}" type="text" autocomplete="off"
-                 placeholder="${esc(t('inbox.placeholder'))}">
-          <button class="add__btn" type="submit" aria-label="${esc(t('inbox.capture'))}">+</button>
+                 placeholder="${esc(t('inbox.placeholder'))}" aria-label="${esc(t('inbox.placeholder'))}">
+          <button class="add__btn" type="submit" aria-label="${esc(t('inbox.capture'))}">${ICONS.plus}</button>
         </form>
       </section>`;
   }
@@ -519,16 +526,16 @@ const UI = (() => {
       key: day.key,
       title: t('today'),
       sub: `${Store.periodLabel(day.key)}, ${Store.weekdayName(day.key)}`,
+      cls: 'card--today',
       focus: true,
       placeholder: t('add.day'),
     }) : '';
     const horizons = rest.map(({ horizon, key }) =>
       childCardHTML(key, horizon, t('add.period'), true)).join('');
 
-    return inboxHTML() +
-      `<div class="section-label">${esc(t('section.now'))}</div>` +
-      todayCard +
-      `<div class="grid span-grid${day ? ' grid--gap-top' : ''}">${horizons}</div>` +
+    return `<div class="grid overview-top${day ? ' overview-top--split' : ''}">${todayCard}${inboxHTML()}</div>` +
+      (horizons ? `<h2 class="section-label">${esc(t('section.now'))}</h2>
+        <div class="grid grid--3">${horizons}</div>` : '') +
       attentionHTML();
   }
 
@@ -557,7 +564,7 @@ const UI = (() => {
     box.hidden = !view.settingsOpen;
     if (!view.settingsOpen) return;
     const single = Store.visibleHorizons().length === 1;
-    box.innerHTML = `<span class="settings__label">${esc(t('settings'))}</span>` +
+    $('#settingsViews').innerHTML = `<span class="settings__label">${esc(t('settings'))}</span>` +
       Store.HORIZONS.map(h => {
         const on = Store.isVisible(h);
         const locked = on && single;
@@ -589,8 +596,7 @@ const UI = (() => {
       `<option value="${code}">${esc(I18N.name(code))}</option>`).join('');
     langSelect.value = I18N.lang;
     const settingsBtn = $('#btnSettings');
-    settingsBtn.title = t('settings.title');
-    settingsBtn.setAttribute('aria-pressed', String(view.settingsOpen));
+    settingsBtn.setAttribute('aria-expanded', String(view.settingsOpen));
   }
 
   /** Состояние автосохранения в файл. Где API нет — кнопки нет вовсе. */
@@ -626,7 +632,7 @@ const UI = (() => {
     const brand = $('#btnBrand');
     brand.classList.toggle('brand--active', isOverview());
     brand.title = waiting ? t('overview.inbox', waiting) : t('overview');
-    brand.innerHTML = t('app.brand') +
+    brand.innerHTML = ICONS.brand + esc(t('app.brand')) +
       (waiting ? `<span class="brand__badge">${waiting}</span>` : '');
   }
 

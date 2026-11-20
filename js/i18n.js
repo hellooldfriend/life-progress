@@ -32,15 +32,7 @@ const I18N = (() => {
     'nav.ahead': label => `${label} ahead`,
     'export': 'Export', 'export.title': 'Download all data as JSON',
     'import': 'Import', 'import.title': 'Load data from JSON',
-    'footer': `Data lives in this browser (localStorage). “File” turns on autosave to a JSON file on disk —
-      put it in a synced folder and your data travels between machines.<br />
-      “Inbox” on the overview is for thoughts without a date: write it down now, pick a period later.
-      Click the logo for the overview.<br />
-      A label goes right in the text: “buy tickets #work”. Click a label to filter by it.<br />
-      Click a task’s text to edit. ★ — important, → — move to the next period,
-      ⊘ — cancel (stays visible, leaves the progress), ↑ ↓ — order.<br />
-      ⊞ — break a goal into steps: a step lives in its own period, the link shows on both sides.<br />
-      Keys: ← → — neighbouring period, t — back to now, i — capture to inbox.`,
+    'footer': 'Select a task to edit it. Add a label with #work. Use ← → to change periods, t to jump to today, and i to open the inbox.',
 
     /* ── даты ── */
     'months.short': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
@@ -71,10 +63,10 @@ const I18N = (() => {
     },
 
     /* ── задачи ── */
-    'task.done': 'Done', 'task.edit': 'Edit', 'task.add': 'Add',
+    'task.done': 'Done', 'task.edit': 'Edit', 'task.add': 'Add', 'task.actions': 'Task actions',
     'act.moveTo': period => `Move to: ${period}`,
     'act.cancel': 'Cancel — not going to do it', 'act.restore': 'Bring back to work', 'act.delete': 'Delete',
-    'act.up': 'Move up', 'act.down': 'Move down', 'act.star': 'Important', 'act.steps': 'Steps and goal',
+    'act.up': 'Move up', 'act.down': 'Move down', 'act.star': 'Mark as important', 'act.unstar': 'Remove importance', 'act.steps': 'Steps and goal',
     'act.unlink': 'Remove from steps — the task stays in its period',
     'tag.carry': from => (from ? `moved from “${from}”` : 'moved'),
     'tag.carryRun': (n, horizon) => `${en.ordinal(n)} ${en['span.words'][horizon]?.[0] || 'period'} in a row`,
@@ -87,7 +79,7 @@ const I18N = (() => {
     'progress.cancelled': n => `Cancelled tasks: ${n}`,
 
     /* ── списки и формы ── */
-    'empty': 'empty', 'empty.filtered': c => `no tasks with #${c}`,
+    'empty': 'No tasks yet', 'empty.filtered': c => `no tasks with #${c}`,
     'add.task': 'new task', 'add.day': 'task for the day',
     'add.week': 'goal or task for the week', 'add.month': 'goal or task for the month',
     'add.quarter': 'goal or task for the quarter', 'add.year': 'goal or task for the year',
@@ -104,7 +96,7 @@ const I18N = (() => {
     'target.day': 'today', 'target.week': 'week', 'target.month': 'month',
     'target.quarter': 'quarter', 'target.year': 'year', 'target.life': 'life',
     'filters.all': 'all',
-    'settings': 'Views', 'settings.title': 'Show or hide horizons',
+    'settings': 'Visible horizons', 'settings.title': 'Settings',
     'settings.hint': 'Hidden horizons leave the tabs, the overview and the breakdowns. Tasks in them stay.',
     'settings.last': 'At least one horizon must stay visible',
 
@@ -113,9 +105,9 @@ const I18N = (() => {
     'steps.parent': 'part of goal', 'steps.none': '— on its own',
 
     /* ── обзор ── */
-    'section.inbox': 'Inbox', 'inbox.placeholder': 'came to mind — write it down, sort out later',
+    'section.inbox': 'Inbox', 'inbox.placeholder': 'Add to inbox…',
     'inbox.empty': 'empty — all sorted', 'inbox.capture': 'Capture',
-    'section.now': 'Now', 'section.attention': 'Sort out', 'attention.none': 'no loose ends — all sorted',
+    'section.now': 'Current horizons', 'section.attention': 'Sort out', 'attention.none': 'no loose ends — all sorted',
     'attention.overdue': 'Overdue', 'attention.overdueSub': 'the period ended, the task stayed',
     'attention.stuck': 'Stuck', 'attention.stuckSub': 'keeps moving from period to period — split it or drop it',
     'attention.retros': 'Reviews missing', 'attention.retrosSub': 'the period ended, the review is empty',
@@ -157,15 +149,7 @@ const I18N = (() => {
     'nav.ahead': label => `${label} вперёд`,
     'export': 'Экспорт', 'export.title': 'Скачать все данные в JSON',
     'import': 'Импорт', 'import.title': 'Загрузить данные из JSON',
-    'footer': `Данные хранятся в этом браузере (localStorage). «Файл» включает автосохранение в JSON на диске —
-      положите его в синхронизируемую папку, и данные поедут между машинами.<br />
-      «Входящие» на обзоре — для мыслей без времени: записать сейчас, период назначить потом.
-      Клик по логотипу — обзор.<br />
-      Метка задаётся прямо в тексте: «купить билеты #работа». Клик по метке — фильтр по ней.<br />
-      Клик по тексту задачи — правка. ★ — важное, → — перенести в следующий период,
-      ⊘ — отменить (задача остаётся видна, но уходит из прогресса), ↑ ↓ — порядок.<br />
-      ⊞ — разбить цель на шаги: шаг живёт в своём периоде, а связь видна с обеих сторон.<br />
-      Клавиши: ← → — соседний период, t — вернуться к текущему, i — записать во входящие.`,
+    'footer': 'Нажмите на задачу, чтобы изменить её. Метку можно добавить в тексте: #работа. Клавиши ← → переключают периоды, t возвращает к текущему, i открывает входящие.',
 
     'months.short': ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'],
     'months.long': ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'],
@@ -197,10 +181,10 @@ const I18N = (() => {
     /** Порядковое согласуется с родом слова: «3-я неделя», «3-й день». */
     'ordinal': (n, horizon) => `${n}-${horizon === 'week' ? 'я' : 'й'}`,
 
-    'task.done': 'Выполнено', 'task.edit': 'Изменить', 'task.add': 'Добавить',
+    'task.done': 'Выполнено', 'task.edit': 'Изменить', 'task.add': 'Добавить', 'task.actions': 'Действия с задачей',
     'act.moveTo': period => `Перенести: ${period}`,
     'act.cancel': 'Отменить — не буду делать', 'act.restore': 'Вернуть в работу', 'act.delete': 'Удалить',
-    'act.up': 'Выше', 'act.down': 'Ниже', 'act.star': 'Важное', 'act.steps': 'Шаги и цель',
+    'act.up': 'Выше', 'act.down': 'Ниже', 'act.star': 'Отметить важным', 'act.unstar': 'Снять важность', 'act.steps': 'Шаги и цель',
     'act.unlink': 'Убрать из шагов — задача останется в своём периоде',
     'tag.carry': from => (from ? `перенос из «${from}»` : 'перенос'),
     'tag.carryRun': (n, horizon) => `${ru.ordinal(n, horizon)} ${ru['span.words'][horizon]?.[0] || 'период'} подряд`,
@@ -212,7 +196,7 @@ const I18N = (() => {
     'tag.openPeriod': 'Открыть период',
     'progress.cancelled': n => `Отменено задач: ${n}`,
 
-    'empty': 'пусто', 'empty.filtered': c => `нет задач с меткой #${c}`,
+    'empty': 'Пока нет задач', 'empty.filtered': c => `нет задач с меткой #${c}`,
     'add.task': 'новая задача', 'add.day': 'задача на день',
     'add.week': 'цель или задача на неделю', 'add.month': 'цель или задача на месяц',
     'add.quarter': 'цель или задача на квартал', 'add.year': 'цель или задача на год',
@@ -229,16 +213,16 @@ const I18N = (() => {
     'target.day': 'сегодня', 'target.week': 'неделя', 'target.month': 'месяц',
     'target.quarter': 'квартал', 'target.year': 'год', 'target.life': 'жизнь',
     'filters.all': 'все',
-    'settings': 'Виды', 'settings.title': 'Показать или скрыть горизонты',
+    'settings': 'Видимые горизонты', 'settings.title': 'Настройки',
     'settings.hint': 'Скрытый горизонт уходит из вкладок, обзора и разбивок. Задачи в нём остаются.',
     'settings.last': 'Хотя бы один горизонт должен остаться',
 
     'steps.placeholder': 'новый шаг…', 'steps.into': period => `Шаг в период: ${period}`,
     'steps.parent': 'часть цели', 'steps.none': '— сама по себе',
 
-    'section.inbox': 'Входящие', 'inbox.placeholder': 'пришло в голову — записать и разобрать потом',
+    'section.inbox': 'Входящие', 'inbox.placeholder': 'Записать во входящие…',
     'inbox.empty': 'пусто — всё разобрано', 'inbox.capture': 'Записать',
-    'section.now': 'Сейчас', 'section.attention': 'Разгрести', 'attention.none': 'хвостов нет — всё разобрано',
+    'section.now': 'Текущие горизонты', 'section.attention': 'Разгрести', 'attention.none': 'хвостов нет — всё разобрано',
     'attention.overdue': 'Просрочено', 'attention.overdueSub': 'период кончился, задача осталась',
     'attention.stuck': 'Залипло', 'attention.stuckSub': 'переезжает из периода в период — разрезать или снять',
     'attention.retros': 'Итоги не записаны', 'attention.retrosSub': 'период закончился, ретроспектива пустая',

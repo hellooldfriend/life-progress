@@ -68,6 +68,7 @@
     const li = btn.closest('.task, .steps-panel');
     if (!li) return;
     const { key, id } = li.dataset;
+    const actions = btn.closest('.task__actions');
 
     switch (btn.dataset.act) {
       case 'toggle': {
@@ -87,7 +88,12 @@
       }
       case 'star': {
         const task = Store.toggleImportant(key, id);
-        if (task) li.classList.toggle('task--important', task.important);
+        if (task) {
+          li.classList.toggle('task--important', task.important);
+          btn.textContent = t(task.important ? 'act.unstar' : 'act.star');
+          actions.open = false;
+          actions.querySelector('summary').focus();
+        }
         break;
       }
       case 'cancel':
@@ -138,9 +144,17 @@
         UI.render();
         break;
       case 'edit':
+        if (actions) actions.open = false;
         startEdit(li.querySelector('.task__text'), key, id);
         break;
     }
+  });
+
+  document.addEventListener('click', e => {
+    const current = e.target.closest('.task__actions');
+    content.querySelectorAll('.task__actions[open]').forEach(actions => {
+      if (actions !== current) actions.open = false;
+    });
   });
 
   /** Перерисовка после анимации галочки. Быстрые клики подряд не копят таймеры. */
@@ -208,8 +222,8 @@
     const input = e.target.closest('.add__input');
     if (!input) return;
     e.preventDefault();
-    // В панели шагов Enter кладёт шаг в сегодняшний день — самый частый выбор
-    if (input.dataset.step) input.closest('.steps-panel').querySelector('[data-to="day"]').click();
+    // Первый доступный горизонт — день, если он видим.
+    if (input.dataset.step) input.closest('.steps-panel').querySelector('[data-act="step"]').click();
     else submitAdd(input);
   });
 
@@ -290,6 +304,15 @@
   /* ═════════════ Горячие клавиши ═════════════ */
 
   document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      const actions = content.querySelector('.task__actions[open]');
+      if (actions) {
+        const hadFocus = actions.contains(document.activeElement);
+        actions.open = false;
+        if (hadFocus) actions.querySelector('summary').focus();
+      }
+      return;
+    }
     const typing = /^(input|textarea|select)$/i.test(document.activeElement.tagName);
     if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
 
